@@ -1,0 +1,10 @@
+{
+  "appId": "com.example.app",
+  "appName": "max",
+  "webDir": "../build/",
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 0
+    }
+  }
+}

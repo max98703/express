@@ -1,38 +1,532 @@
-.App {
+/* App.css */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+.navbar {
+  /* Set your desired background color */
+  transition: background-color 0.3s ease; /* Smooth transition effect */
+}
+
+.navbar {
+  position: fixed;
+  background-color: #20223699;
+  top: 0;
+  width: 100%;
+  z-index: 1000; /* Adjust z-index as needed */
+}
+
+
+/* CSS for responsive select field */
+@media screen and (max-width: 767px) {
+  .form-select {
+    display: block;
+    border:1px solid rgb(199, 202, 211);
+    width: 30%;
+    margin-bottom: 10px;
+    border-radius: 10px;
+    margin-left:-150px;
+    margin-top: 10px;
+    padding:2px;
+ background-color: transparent;
+ font-size: 10px;
+ color:#f9faf2a9;
+  }
+  
+}
+.form-select option {
+  /* Set the height of the options */
+  height: 20px; /* Adjust the height as needed */
+  width:20px;
+}
+.op {
+  
+  position: relative;
+  width:75%;
+  margin:0 auto;
+  display: block;
+  text-align: center; /* Center content horizontally */
+  border-radius: 20px;
+}
+
+.op img {
+  width: 100%;
+  border-radius: 20px;
+  object-fit:fill;
+}
+
+.button-container {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 10%; /* Adjust vertical position */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.button-container .left-content,
+.button-container .right-content {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.button-container .play-button {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 60px; /* Adjust size of the play button */
+  height: 60px; /* Adjust size of the play button */
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  text-decoration: none;
+  color: #ffffff;
+}
+
+.button-container .play-button i {
+  font-size: 24px;
+}
+
+.button-container .left-content span,
+.button-container .right-content span {
+  color: #ffffff;
+  margin: 0 10px;
+}
+
+.button-container .left-content i,
+.button-container .right-content i {
+  margin-left: 5px;
+}
+
+
+body {
+  font-family: "montserrat", sans-serif;
+  background: linear-gradient(to right, #131617,#000428);
+
+}
+
+
+header {
+  width: 100%;
+  padding-top: 2rem;
+  padding-bottom: 1rem;
+}
+
+header h1 {
+  color: #ffffff;
+  font-size: 4rem;
+  font-weight: 700;
   text-align: center;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+main {
+  width: 100%;
+  max-width: 90%;
+  margin: 0 auto;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
+button{
+  color: #fff;
+}
+/* Modal styles */
+/* Modal styles */
+.modal {
+  display: block;
+  position: fixed;
+  z-index: 9999;
+  
+  top: 20%;
+  width: 400px;
+  height:200px;
+
+}
+
+.modal-content {
+  position: absolute;
+  top: 50%;
+  left: 41%;
+  transform: translate(-50%, -50%);
+  padding: 20px;
+  border-radius: 5px;
+  background: linear-gradient(to right, #131617,#000428);
+
+}
+
+.close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  color:red;
+}
+
+/* Responsive styles */
+@media only screen and (max-width: 768px) {
+  .modal-content {
+    width: 90%; /* Adjust as needed */
+    max-width: 400px; /* Adjust as needed */
   }
 }
+.search-results-overlay {
+  position: fixed;
+  margin-top: 75px;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  color: #f9faf2;
+  padding: 10px;
+  font-size: 4px;
+  background-color:rgba(17, 16, 16, 0.993); /* Semi-transparent white background */
+  z-index: 2000; /* Ensure the overlay is on top of other content */
+  overflow-y: auto; /* Add scrollbar if content exceeds viewport height */
+}
+/* Style the ReactPlayer component */
+.react-player {
+  width: 20px;
+  height: 20px;
+}
+.about 
+.item {
+  text-align: center;
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+  box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px -1px rgba(0,0,0,0.1);
+}
+
+
+.item img {
+  width: 100%;
+  height: auto;
+  
+}
+.not{
+  color:rgb(247, 244, 240);
+  margin-top: 10rem;
+  margin-left: 7rem;
+  font-weight: 300;
+  text-align: center;
+
+  
+}
+h1{
+  color:red;
+  font-size:5rem;
+  font-weight: 800;
+}
+
+h3{
+  color:white;
+}
+.item h3 {
+  color: white;
+  margin-top: 5px;
+  font-size: 16px;
+}
+.hr{
+  background-color: #40413c;
+  padding:0.0001rem;
+  
+}
+/* Rest of your CSS styles... */
+/* App.css */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "montserrat", sans-serif;
+  
+}
+
+header {
+  width: 100%;
+  
+  padding-bottom: 1rem;
+}
+h3{
+  color:#b9b4b4
+}
+header h1 {
+  color: #ffffff;
+  font-size: 4rem;
+  font-weight: 700;
+  text-align: center;
+}
+.section{
+  padding: 20px;
+
+}
+.p{
+  color:#50504d;
+  font-weight: 400px;
+  font-size:20px;
+}
+main {
+  width: 100%;
+  max-width: 90%;
+  margin: 0 auto;
+  padding-top: 10px;
+
+}
+.container {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding: 2px;
+  border-radius: 10px;
+}
+.containers {
+
+
+  display:grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  
+  row-gap:20px;
+  border-radius: 10px;
+
+
+
+}
+
+
+.card {
+  width: 120px; /* Adjust width as needed */
+  height:170px;
+  border: 1px solid rgb(87, 122, 197);
+  border-radius: 10px;
+  
+}
+
+.movie-poster {
+  width: 100%;
+  height: auto;
+}
+
+.item img {
+  max-width: 100%;
+  height:170px;
+  border-radius: 10px;
+  
+  
+}
+
+.item h3 {
+  color: white;
+  margin-top: 5px;
+  font-size: 16px;
+}
+
+.search-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 1rem 0;
+}
+
+.search {
+  width: 60%;
+  max-width: 400px;
+  padding: 10px;
+  border: none;
+  outline: none;
+  background-color: #fff;
+  border-radius: 20px;
+  color: #000;
+  font-size: 16px;
+}
+
+.about {
+  position: relative;
+  display: inline-block;
+}
+
+
+
+.fa-play-circle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 3rem; /* Adjust the size of the play icon as needed */
+  color: white; /* Change the color of the play icon */
+  cursor: pointer;
+  z-index: 2; /* Ensure the icon is above the image */
+}
+
+/* Rest of your CSS styles... */
+.detail {
+  padding: 20px;
+}
+
+.content {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
+}
+
+.about {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.about img {
+  width: 100%;
+  max-width: 300px;
+  height: auto;
+  margin-bottom: 20px;
+}
+
+.details {
+  width: 100%;
+  max-width: 600px;
+  margin-top: 20px;
+  background-color: #fff; /* Set background color */
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.details h2 {
+  font-size: 24px;
+  margin-bottom: 10px;
+  color: #333; /* Set text color */
+}
+
+.details p {
+  margin-bottom: 8px;
+  color: #666; /* Set text color */
+}
+
+.rating {
+  margin-bottom: 10px;
+  color: #ffac2f; /* Set rating color */
+  font-weight: bold;
+}
+/* Styles for the background container */
+.background-container {
+  position: relative;
+}
+
+/* Styles for the background */
+.background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 50%;
+  background-size: cover;
+  z-index: -1; /* Ensure the background stays behind the content */
+}
+
+/* Styles for the main content */
+.App {
+  padding-top: 30px;
+  width:94%;
+  margin:0 auto;
+  padding-bottom: 50px;
+   /* Adjust as needed based on your design */
+}
+.line-below{
+margin-top: -8px;
+background-color: #ffac2f;
+
+}
+
+.item {
+  margin: 2px;
+  cursor: pointer;
+  
+}
+.genre-heading {
+
+  color: #f9faf2;
+  font-weight:bolder;
+
+}
+  
+.line-above {
+  border-top: 2px solid rgb(225, 239, 36);
+margin-top: -10px;
+}
+
+
+
+/* Importing fonts from Google */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap');
+
+/* Reseting */
+
+
+
+.wrapper {
+    max-width: 270px;
+    min-height: 300px;
+    margin-top:13rem;
+    margin-left:3rem;
+    border-radius: 15px;
+    border: 1px solid rgb(192, 169, 169);
+    box-shadow: rgba(0, 0, 0, 0.16) 0px 1px 4px;
+}
+
+
+.wrapper .form-field input {
+    width: 100%;
+    display: block;
+    border: none;
+    outline: none;
+    background: none;
+    font-size: 1.2rem;
+    color: #666;
+    padding: 10px 15px 10px 10px;
+    /* border: 1px solid red; */
+}
+
+h4{
   color: white;
+  text-align:center;
 }
 
-.App-link {
-  color: #61dafb;
+.wrapper .form-field {
+    padding-left: 10px;
+    margin-bottom: 20px;
+    border-radius: 20px;
+    background-color: white;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.wrapper .form-field .fas {
+    color: #555;
+}
+
+.wrapper .btn {
+    box-shadow: none;
+    width: 70%;
+    height: 40px;
+    margin-left:2rem;
+    background-color: #03A9F4;
+    color: #fff;
+    border-radius: 25px;
+    letter-spacing: 1.3px;
+}
+
+.wrapper .btn:hover {
+    background-color: #039BE5;
+}
+
+.wrapper a {
+    text-decoration: none;
+    font-size: 0.8rem;
+    color: #03A9F4;
+}
+
+.wrapper a:hover {
+    color: #039BE5;
 }
