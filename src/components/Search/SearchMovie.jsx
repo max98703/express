@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback,useContext } from "react";
 import { useParams } from "react-router-dom";
-import Spinner from "../Spinner";
+import Spinner from "../Spinner/Spinner";
 import { AppContext } from '../../context/AppContext'; // Adjust the path as per your project structure
 
 const SearchMovie = () => {

@@ -1,10 +1,10 @@
 import React, { useEffect, useContext } from "react";
 import { useParams } from "react-router-dom";
-import Spinner from "../Spinner";
+import Spinner from "../Spinner/Spinner";
 import { AppContext } from "../../context/AppContext";
 
 const Category = () => {
-  const { fetchMoviesByCategory, movies, handleDetailClick, loading } = useContext(
+  const {state, fetchMoviesByCategory, movies, handleDetailClick} = useContext(
     AppContext
   );
 
@@ -16,14 +16,14 @@ const Category = () => {
 
   return (
     <div className="App">
-      {loading ? (
+      {state.loading ? (
         <Spinner />
-      ) : movies.length > 0 ? (
+      ) : state.movies.length > 0 ? (
         <>
           <h3>{value.charAt(0).toUpperCase() + value.slice(1)}</h3>
           <hr className="line-below" />
-          <div className="containers">
-            {movies.map((movie) => (
+          <div className="containers pt-10 overflow-y-auto pb-4">
+            {state.movies.map((movie) => (
               <div
                 key={movie.imdbID}
                 className="item"

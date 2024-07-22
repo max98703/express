@@ -1,54 +1,53 @@
-
 import React, { createContext, useState, useContext } from 'react';
-import axios from 'axios';
+import api from '../api/api';
+import { userService } from "../Services/authentication.service";
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
+  const [loading, setLoading] = useState(true);
 
   const login = async (data) => {
-   
-     try {
-       const response = await axios.post('http://localhost:5000/login', data);
+    try {
+      const response = await api.post('/login', data);
+      const { user } = response.data;
+      userService.setToken(user);
+      window.location.href = `/`;
+    } catch (error) {
+      alert('Invalid credentials. Please check your username and password.');
+      console.error('Login error:', error);
+      localStorage.removeItem('user');
+    }
+  };
 
-       const { message, user } = response.data;
+  const resetPassword = async (data) => {
+    const response = await api.post('/reset-password', {
+      currentPassword: data.currentPassword,
+      newPassword: data.newPassword,
+      confirmPassword: data.confirmPassword,
+    });
+    return response;
+  };
 
-       localStorage.setItem('user', JSON.stringify(user));
+  const handleFileUpload = async (data) => {
+    const formData = new FormData();
+    if (data.file) formData.append('myImage', data.file);
+    if (data.userName) formData.append('name', data.userName);
+    if (data.phone) formData.append('phone', data.phone);
 
-       sessionStorage.setItem('session', JSON.stringify(user) );
-
-       window.location.href = `/`;
-
-     } catch (error) {
-        
-       alert('Invalid credentials. Please check your username and password.');
-
-       console.log('Login error:', error);
-
-       localStorage.removeItem('user');
-     }
-   };
- 
-  const logout = () => {
-    // localStorage.removeItem('user');
-    // setUser(null);
-    // setAuthenticated(false);
-    // // Optionally, you might want to redirect or update state based on logout
-    // window.location.href = `/login`; // Redirect to login page after logout
+    try {
+      return await api.post('/upload-profile-picture', formData);
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      return false;
+    }
   };
 
   return (
-    <AuthContext.Provider
-      value={{
-        login,
-        logout,
-      }}
-    >
+    <AuthContext.Provider value={{ login, handleFileUpload, resetPassword, setLoading, loading }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => {
-  return useContext(AuthContext);
-};
+export const useAuth = () => useContext(AuthContext);

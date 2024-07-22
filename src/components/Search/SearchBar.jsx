@@ -5,23 +5,17 @@ import { Link } from "react-router-dom";
 
 const SearchBar = () => {
   const {
-    horrorMovies,
-    actionMovies,
     state,
     searchInput,
-    showSearchResults,
-    movies,
-    searchOpen,
-    toggleSearch,
   } = useContext(AppContext);
 
   return (
     <>
       
-      <div className={`search-bar-container w-full ${searchOpen ? 'active' : ''}`}>
+      <div className={`search-bar-container w-full ${state.searchOpen ? 'active' : ''}`}>
         <div className=" nav fixed w-full">
           <i
-           onClick={toggleSearch}
+           onClick={state.toggleSearch}
             class="fa fa-arrow-left"
             style={{ fontSize: "24px" }}
             aria-hidden="true"
@@ -36,9 +30,9 @@ const SearchBar = () => {
             autoComplete="off"
           />
         </div>
-        {showSearchResults && (
+        {state.showSearchResults && (
           <div>
-            {movies.length > 0 ? (
+            { state.movies.length > 0 ? (
               <>
                 <div className="contain">
                   <h5 className="genre-heading">Searched Movies</h5>
@@ -47,7 +41,7 @@ const SearchBar = () => {
                     className="grid"
                     style={{ overflowX: "auto", whiteSpace: "nowrap" }}
                   >
-                    {movies.map((movie, index) => (
+                    {state.movies.map((movie, index) => (
                       <Link
                         key={movie.imdbID}
                         className="item"
@@ -76,14 +70,14 @@ const SearchBar = () => {
             )}
           </div>
         )}
-        {!showSearchResults && (
+        {!state.showSearchResults && (
           <div className="contain">
             <h5 className="genre-heading">trending Action Movie</h5>
             <div
               className="container"
               style={{ overflowX: "auto", whiteSpace: "nowrap" }}
             >
-              {actionMovies.map((movie, index) => (
+              {state.actionMovies.map((movie, index) => (
                 <Link
                   key={movie.imdbID}
                   className="item"
@@ -107,7 +101,7 @@ const SearchBar = () => {
               className="container"
               style={{ overflowX: "auto", whiteSpace: "nowrap" }}
             >
-              {horrorMovies.map((movie, index) => (
+              {state.horrorMovies.map((movie, index) => (
                 <Link
                   key={movie.imdbID}
                   className="item"

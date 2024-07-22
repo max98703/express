@@ -1,33 +1,28 @@
-
 import React, { useEffect, useState } from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
-import { checkTokenValidity } from '../utils/auth'; // Adjust path as per your project structure
-
+import { Navigate, Outlet  } from 'react-router-dom';
+import {userService} from "../Services/authentication.service";
 const ProtectedRoute = () => {
-    const [isValidated, setIsValidated] = useState(false);
-    const [loading, setLoading] = useState(true); // Track loading state
+    const [isValidated, setIsValidated] = useState(null);
 
     useEffect(() => {
         const validateToken = async () => {
             try {
-                const isValid = await checkTokenValidity();
-                console.log('Token validity:', isValid); // Log validity for debugging
+                const isValid = await userService.loggedIn();
+                console.log(isValid);
                 setIsValidated(isValid);
             } catch (error) {
                 console.error('Error validating token:', error);
-                setIsValidated(false); // Set validation to false in case of error
-            } finally {
-                setLoading(false); // Set loading to false after validation attempt
+                setIsValidated(false);
             }
         };
 
         validateToken();
-    }, []); // Run only once on component mount
+    }, []);
 
-    // Render based on token validity or loading state
-    if (loading) {
-        return <div>Loading...</div>; // Optional: Show loading indicator while validating token
+    if (isValidated === null) {
+        return <div>Loading...</div>;
     }
+
 
     return isValidated ? (
         <Outlet />
@@ -37,3 +32,4 @@ const ProtectedRoute = () => {
 };
 
 export default ProtectedRoute;
+
