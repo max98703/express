@@ -34,47 +34,48 @@ const AppContextProvider = ({ children }) => {
   const { fetchMoviesByCategory, fetchSeason, fetchDetails, fetchYouTubeVideoByIMDB } = useMovieApi();
   let timerId;
 
-  const fetchTrailerUrl = async (id) => {
+  const fetchTrailerUrl = (id) => {
     if (id) {
-      try {
-        const trailer = await fetchYouTubeVideoByIMDB(id);
-        if (trailer) {
-          setState(prev => ({ ...prev, trailerUrl: trailer }));
-          fetchSeason(id);
-          fetchDetails(id);
-        }
-      } catch (error) {
-        console.error("Error fetching trailer URL:", error);
-      }
+      fetchYouTubeVideoByIMDB(id)
+        .then((trailer) => {
+          if (trailer) {
+            setState(prev => ({ ...prev, trailerUrl: trailer }));
+            fetchSeason(id);
+            fetchDetails(id);
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching trailer URL:", error);
+        });
     }
   };
-
+  
   useEffect(() => {
-    const fetchInitialMovies = async () => {
+    const fetchInitialMovies = () => {
       setState(prev => ({ ...prev, loading: true }));
-      try {
-        const [horrorResponse, actionResponse, bollywoodResponse] = await Promise.all([
-          fetchData(`${apiurl}&s=horror`),
-          fetchData(`${apiurl}&s=action`),
-          fetchData(`${apiurl}&s=bollywood`)
-        ]);
-
-        setState(prev => ({
-          ...prev,
-          horrorMovies: horrorResponse?.Search || [],
-          actionMovies: actionResponse?.Search || [],
-          bollywoodMovies: bollywoodResponse?.Search || [],
-          loading: false,
-        }));
-      } catch (error) {
-        console.error("Error fetching movies:", error);
-        setState(prev => ({ ...prev, loading: false }));
-      }
+  
+      Promise.all([
+        fetchData(`${apiurl}&s=horror`),
+        fetchData(`${apiurl}&s=action`),
+        fetchData(`${apiurl}&s=bollywood`)
+      ])
+        .then(([horrorResponse, actionResponse, bollywoodResponse]) => {
+          setState(prev => ({
+            ...prev,
+            horrorMovies: horrorResponse?.Search || [],
+            actionMovies: actionResponse?.Search || [],
+            bollywoodMovies: bollywoodResponse?.Search || [],
+            loading: false,
+          }));
+        })
+        .catch((error) => {
+          console.error("Error fetching movies:", error);
+          setState(prev => ({ ...prev, loading: false }));
+        });
     };
-
+  
     fetchInitialMovies();
   }, []);
-
   useEffect(() => {
     const getRandomMovie = () => {
       const categories = [state.actionMovies];

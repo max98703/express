@@ -9,8 +9,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (data) => {
     try {
-      const response = await api.post('/login', data);
-      const { user } = response.data;
+      const { data: { user } } = await api.post('/login', data);
       userService.setToken(user);
       window.location.href = `/`;
     } catch (error) {
