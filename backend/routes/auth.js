@@ -1,24 +1,21 @@
 const express = require('express');
 const router = express.Router();
-const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { generateToken, getUserByEmail, updateUser, insertUser, comparePasswords, sendLoginEmail, publishLoginSuccessNotification, sendResponse } = require('../services/service');
+const { generateToken, getUserByEmail, updateUser, insertUser, comparePasswords, sendLoginEmail, publishLoginSuccessNotification, sendResponse, eventLog } = require('../services/service');
 const { query } = require('../db/db');
 const authenticateUser = require('../middleware/authenticateUser');
-
 const secret = process.env.SECRET_KEY || 'some other secret as default';
 
 router.post("/login", async (req, res) => {
   const { email, password, id, picture, googleLogin } = req.body;
-
-  const user = id ? await getUserByEmail(email) : null;
+  const user = id ? await getUserByEmail(id) : null;
   const token = user?.token || generateToken();
 
   if (id) {
     await (user
       ? updateUser(req.body, token)
-      : insertUser({ ...req.body, id: crypto.randomBytes(8).toString("hex"), googleLogin: 1 }, token));
+      : insertUser({ ...req.body, googleLogin: 1 }, token));
   } else {
     if (!user || !(await comparePasswords(password, user.password))) {
       return sendResponse(res, 401, false, "Invalid credentials");
@@ -37,9 +34,15 @@ router.post("/login", async (req, res) => {
 
   req.session.token = await jwt.sign(payload, secret, { expiresIn: 36000 });
 
-  setImmediate(() => sendLoginEmail(payload));
-  publishLoginSuccessNotification(payload).catch(error => console.error("Error publishing notification:", error));
-
+  process.nextTick(async () => {
+    try {
+      await publishLoginSuccessNotification(payload);
+      await sendLoginEmail(payload);
+      await eventLog(req, payload);
+    } catch (error) {
+      console.error("Error executing background tasks:", error);
+    }
+  });
   return sendResponse(res, 200, true, "Login successful and email sent", req.session.token);
 });
 
@@ -70,5 +73,6 @@ router.post("/checkTokenValidity", async (req, res) => {
     return sendResponse(res, 500, false, "Internal Server Error");
   }
 });
+
 
 module.exports = router;
