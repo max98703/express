@@ -37,7 +37,7 @@ const beamsClient = new PushNotifications({
 });
 
 const storage = multer.diskStorage({
-  destination: path.join(__dirname, "../public/images"),
+  destination: path.join(__dirname, "../../public/image"),
   filename: (req, file, cb) => cb(null, `${Date.now()}${path.extname(file.originalname)}`),
 });
 
