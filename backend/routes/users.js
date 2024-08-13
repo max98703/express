@@ -46,9 +46,8 @@ router.post("/upload-profile-picture", upload, async (req, res) => {
 
 router.get("/profile", async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.email;
     const userProfile = await getUserByEmail(userId);
-    console.log(userProfile);
     return userProfile
       ? sendResponse(
           res,
