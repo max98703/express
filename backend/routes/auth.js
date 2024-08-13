@@ -2,19 +2,19 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { generateToken, getUserByEmail, updateUser, insertUser, comparePasswords, sendLoginEmail, publishLoginSuccessNotification, sendResponse, eventLog } = require('../services/service');
+const { generateToken, getUserByEmails, getUserBygoogleId,  updateUser, insertUser, comparePasswords, sendLoginEmail, publishLoginSuccessNotification, sendResponse, eventLog } = require('../services/service');
 const { query } = require('../db/db');
 const authenticateUser = require('../middleware/authenticateUser');
 const secret = process.env.SECRET_KEY || 'some other secret as default';
 
 router.post("/login", async (req, res) => {
   const { email, password, id, picture, googleLogin } = req.body;
-  const user = id ? await getUserByEmail(id) : null;
+  const user = id ? await getUserBygoogleId(id) : await getUserByEmails(email);
   const token = user?.token || generateToken();
 
   if (id) {
     await (user
-      ? updateUser(req.body, token)
+      ? updateUser(req.body, token , user.id)
       : insertUser({ ...req.body, googleLogin: 1 }, token));
   } else {
     if (!user || !(await comparePasswords(password, user.password))) {
@@ -30,8 +30,9 @@ router.post("/login", async (req, res) => {
     googleLogin: user?.googleLogin || googleLogin,
     logo: user?.logo || picture,
     phoneNumber: user?.phoneNumber || null,
+    admin : user?.admin || null,
   };
-
+  
   req.session.token = await jwt.sign(payload, secret, { expiresIn: 36000 });
 
   process.nextTick(async () => {

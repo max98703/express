@@ -63,8 +63,19 @@ const EmailContent =  (user, intent) => {
 
 
 
-const getUserByEmail = async (id) => {
+const getUserByEmails = async (email) => {
+  const [user] = await query("SELECT * FROM users WHERE email = ? AND (googleLogin IS NULL OR googleLogin = 0)", [email]);
+  return user;
+};
+
+
+const getUserBygoogleId = async (id) => {
   const [user] = await query("SELECT * FROM users WHERE id = ?", [id]);
+  return user;
+};
+
+const getUserByEmail = async (email) => {
+  const [user] = await query("SELECT * FROM users WHERE email = ?", [email]);
   return user;
 };
 
@@ -77,10 +88,10 @@ const getUserLogs = async (id) => {
 };
 
 const updateUser = async (userData, token) => {
-  return query("UPDATE users SET name = ?, token = ? WHERE email = ?", [
+  return query("UPDATE users SET name = ?, token = ? WHERE id = ?", [
     userData.name,
     token,
-    userData.email,
+    userData.id,
   ]);
 };
 
@@ -106,7 +117,7 @@ const publishLoginSuccessNotification = async (user) => {
   try {
     console.log(user.id);
     const { publishResponse } = await beamsClient.publishToInterests(
-      ['104575621918210032991'],
+      [user.id],
       {
         web: {
           notification: {
@@ -155,4 +166,6 @@ module.exports = {
   sendEmailWithReceipt,
   eventLog,
   getUserLogs,
+  getUserBygoogleId,
+  getUserByEmails,
 };
