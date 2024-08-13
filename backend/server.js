@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const app = express();
+const {logger} = require('./middleware/logEvents');
+const credentials = require('./middleware/credentials');
 const authRoutes = require('./routes/auth');
 const session = require('express-session');
 const userRoutes = require('./routes/users');
@@ -87,7 +89,8 @@ app.post('/webhook', bodyParser.raw({ type: 'application/json' }), async(req, re
 
 //   res.sendStatus(200);
 // });
-
+app.use(logger);
+app.use(credentials);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
