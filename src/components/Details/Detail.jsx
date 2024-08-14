@@ -1,12 +1,11 @@
-import React, { useEffect, useState, useCallback, useContext } from "react";
+import React, { useEffect,useContext } from "react";
 import { useParams, Link } from "react-router-dom";
 import ReactPlayer from "react-player";
 import "../../App.css";
-import { AppContext } from "../../context/AppContext"; // Adjust the path as per your project structure
-
+import { AppContext } from "../../context/AppContext"; 
 function Detail() {
-  const { trailerUrl, fetchTrailerUrl, season, fetchSeason } =
-    useContext(AppContext);
+  const { state, fetchTrailerUrl } =
+  useContext(AppContext);
   const { id } = useParams();
   useEffect(() => {
     fetchTrailerUrl(id);
@@ -29,7 +28,7 @@ function Detail() {
             }}
           >
             <ReactPlayer
-              url={trailerUrl}
+              url={state.trailerUrl}
               controls={true}
               width="100%"
               height="100%"
@@ -38,9 +37,9 @@ function Detail() {
         </header>
       </div>
 
-      {season && (
+      {state.season && (
         <div>
-          {season.map((episode, index) => (
+          {state.season.map((episode, index) => (
             <div
               className="section"
               key={index}
@@ -59,7 +58,7 @@ function Detail() {
                 <div>{episode.Title}</div>
               </Link>
               <ReactPlayer
-                url={trailerUrl}
+                url={state.trailerUrl}
                 playing={false}
                 controls={true}
                 width="50%"

@@ -1,19 +1,19 @@
 import React, { createContext, useState, useContext } from 'react';
 import api from '../api/api';
 import { userService } from "../Services/authentication.service";
-
+import { useNavigate } from 'react-router-dom';
+import usePusherBeams from '../hooks/usePusherBeam';
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
-
+  const navigate = useNavigate();
   const login = async (data) => {
     try {
-      const { data: { user } } = await api.post('/login', data);
-      userService.setToken(user);
-      window.location.href = `/`;
+      const response = await api.post('/login', data);
+      if(response.data.success){ userService.setToken(response.data.user); navigate('/');}
     } catch (error) {
-      alert('Invalid credentials. Please check your username and password.');
+      alert(error.response.data.message);
       console.error('Login error:', error);
       localStorage.removeItem('user');
     }
@@ -42,8 +42,12 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const Qrcode = async()=>{
+    return await api.get('/Qrcode');
+  }
+
   return (
-    <AuthContext.Provider value={{ login, handleFileUpload, resetPassword, setLoading, loading }}>
+    <AuthContext.Provider value={{ login, handleFileUpload, resetPassword, setLoading, loading ,Qrcode}}>
       {children}
     </AuthContext.Provider>
   );

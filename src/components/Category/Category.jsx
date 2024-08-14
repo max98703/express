@@ -4,7 +4,7 @@ import Spinner from "../Spinner/Spinner";
 import { AppContext } from "../../context/AppContext";
 
 const Category = () => {
-  const {state, fetchMoviesByCategory, movies, handleDetailClick} = useContext(
+  const {state, fetchMoviesByCategory, handleDetailClick} = useContext(
     AppContext
   );
 
