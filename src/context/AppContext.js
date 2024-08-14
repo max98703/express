@@ -1,11 +1,12 @@
-import React, { createContext, useState, useEffect, useContext } from "react";
-import { apiurl } from "../baseUrl";
+import React, { createContext, useState, useEffect } from "react";
+import { apiurl} from "../baseUrl";
 import { fetchData } from "../utils/apiUtils";
+import { AuthProvider } from "./AuthContext";
 import useAlertHook from '../hooks/useAlertHook';
+import useDebounce from "../hooks/useDebounce";
 import Alert from "../components/Alert/Alert";
 import useMovieApi from "../hooks/useMovieApi";
-import { AuthProvider } from "./AuthContext";
-
+import { useNavigate } from 'react-router-dom';
 export const AppContext = createContext();
 
 const initialState = {
@@ -29,27 +30,42 @@ const initialState = {
 };
 
 const AppContextProvider = ({ children }) => {
+  const navigate = useNavigate();
+  const [id, setId] = useState(null);
   const [state, setState] = useState(initialState);
   const [alert, showAlert, hideAlert] = useAlertHook();
-  const { fetchMoviesByCategory, fetchSeason, fetchDetails, fetchYouTubeVideoByIMDB } = useMovieApi();
-  let timerId;
+  const { trailerUrl } = useMovieApi({ type: 'trailer', id:id });
+  const {season, details, loading} =  Promise.all([
+    useMovieApi({type:'season', id:id}),
+    useMovieApi({type:'details', id:id}),
+  ]);
 
-  const fetchTrailerUrl = (id) => {
-    if (id) {
-      fetchYouTubeVideoByIMDB(id)
-        .then((trailer) => {
-          if (trailer) {
-            setState(prev => ({ ...prev, trailerUrl: trailer }));
-            fetchSeason(id);
-            fetchDetails(id);
-          }
-        })
-        .catch((error) => {
-          console.error("Error fetching trailer URL:", error);
-        });
+  useEffect(() => {
+    if (trailerUrl) {
+      setState(prevState => ({ ...prevState, trailerUrl }));
     }
+  }, [trailerUrl]);
+
+  // Effect to update state when new data is fetched
+  useEffect(() => {
+    setState(prevState => ({
+      ...prevState,
+      season: season || [],
+      details: details || null,
+      loading: loading,
+    }));
+  }, [season, details, trailerUrl,loading]);
+  const fetchTrailerUrl = async (id) => {
+    console.log(id);
+    if (!id) {
+      console.error("IMDB ID not found.");
+      return;
+    }
+      setId(id)
+      console.log(id);
   };
-  
+
+
   useEffect(() => {
     const fetchInitialMovies = () => {
       setState(prev => ({ ...prev, loading: true }));
@@ -76,42 +92,91 @@ const AppContextProvider = ({ children }) => {
   
     fetchInitialMovies();
   }, []);
+
   useEffect(() => {
     const getRandomMovie = () => {
       const categories = [state.actionMovies];
-      const randomCategory = categories[Math.floor(Math.random() * categories.length)];
-      return randomCategory ? randomCategory[Math.floor(Math.random() * randomCategory.length)] : null;
+      const randomCategoryIndex = Math.floor(Math.random() * categories.length);
+      const randomCategory = categories[randomCategoryIndex];
+      if (randomCategory) {
+        const randomMovieIndex = Math.floor(
+          Math.random() * randomCategory.length
+        );
+        return randomCategory[randomMovieIndex];
+      }
+      return null;
     };
 
-    setState(prev => ({ ...prev, randomMovie: getRandomMovie() }));
+    setState((prevState) => ({
+      ...prevState,
+      randomMovie: getRandomMovie(),
+    }));
   }, [state.horrorMovies, state.actionMovies, state.bollywoodMovies]);
-
+  
+  const fetchMoviesByCategory = async (value) => {
+    try {
+      const data = await fetchData(`${apiurl}&s=${value}`);
+      setState(prev => ({
+        ...prev,
+        movies: data?.Search || [],
+      }));
+    } catch (error) {
+      console.error('Error fetching movies:', error);
+      return [];
+    }
+  };
+  const debouncedSearchValue = useDebounce(state.s, 500);
+  
   const searchInput = (e) => {
     const searchTerm = e.target.value.trim();
-    setState(prev => ({ ...prev, s: searchTerm, showSearchResults: searchTerm !== "" }));
+    setState((prevState) => ({ ...prevState, s: searchTerm, showSearchResults: true }));
 
     if (searchTerm === "") {
-      setState(prev => ({ ...prev, showSearchResults: false }));
+      setState((prevState) => ({ ...prevState, showSearchResults: false }));
       return;
     }
 
-    clearTimeout(timerId);
-    timerId = setTimeout(() => fetchMoviesByCategory(searchTerm), 300);
+    if (debouncedSearchValue){
+      fetchMoviesByCategory(debouncedSearchValue);
+    }
+    
   };
-
-  useEffect(() => () => clearTimeout(timerId), []);
 
   const handleCategoryChange = (e) => {
-    setState(prev => ({ ...prev, selectedCategory: e.target.value }));
-    window.location.href = `/category/${e.target.value}`;
+    const selectedCategory = e.target.value;
+    setState((prevState) => ({ ...prevState, selectedCategory }));
+    navigate(`/category/${selectedCategory}`);
+    
   };
 
-  const handleMovieClick = (movieName) => window.location.href = `/movie/${movieName}`;
-  const handleSearchIconClick = () => setState(prev => ({ ...prev, showSearch: !prev.showSearch, select: false }));
-  const closeSearchIcon = () => setState(prev => ({ ...prev, showSearch: false, showSearchResults: false, select: true }));
-  const handleDetailClick = (id) => window.location.href = `/details/${id}`;
-  const toggleTheme = () => setState(prev => ({ ...prev, darkMode: !prev.darkMode }));
-  const toggleSearch = () => setState(prev => ({ ...prev, searchOpen: !prev.searchOpen }));
+  const handleMovieClick = (movieName) => {
+    navigate(`/movie/${movieName}`);
+  };
+
+  const handleSearchIconClick = () => {
+    setState((prevState) => ({ ...prevState, showSearch: !state.showSearch, select: false }));
+  };
+
+  const closeSearchIcon = () => {
+    setState((prevState) => ({
+      ...prevState,
+      showSearch: false,
+      showSearchResults: false,
+      select: true,
+    }));
+  };
+
+  const handleDetailClick = (id) => {
+    navigate(`/details/${id}`);
+  };
+
+  const toggleTheme = () => {
+    setState((prevState) => ({ ...prevState, darkMode: !state.darkMode }));
+  };
+
+  const toggleSearch = () => {
+    setState((prevState) => ({ ...prevState, searchOpen: !state.searchOpen,showSearchResults :false }));
+  };
 
   const contextValue = {
     state,
@@ -133,7 +198,11 @@ const AppContextProvider = ({ children }) => {
     <AuthProvider>
       <AppContext.Provider value={contextValue}>
         {children}
-        <Alert message={alert.message} type={alert.type} onClose={hideAlert} />
+        <Alert
+        message={alert.message}
+        type={alert.type}
+        onClose={hideAlert}
+      />
       </AppContext.Provider>
     </AuthProvider>
   );

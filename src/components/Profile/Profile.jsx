@@ -1,23 +1,34 @@
-import React, { useEffect, useState ,useContext,useMemo} from "react";
-import {userService} from "../../Services/authentication.service";
+import React, { useEffect, useState, useContext, useMemo } from "react";
+import { userService } from "../../Services/authentication.service";
 import { useAuth } from "../../context/AuthContext";
 import { Link } from "react-router-dom";
-import api from '../../api/api';
+import api from "../../api/api";
 import { AppContext } from "../../context/AppContext";
+import Qrcode from "../QrCode/Qrcode";
 
 const Profile = () => {
   const { handleFileUpload } = useAuth();
   const [isEditing, setIsEditing] = useState({ name: false, phone: false });
-  const [user, setUserInfo] = useState({ userName: "", phone: "", logo: "", email: "" });
+  const [user, setUserInfo] = useState({
+    userName: "",
+    phone: "",
+    logo: "",
+    email: "",
+  });
   const [loading, setLoading] = useState(true); // Added loading state
   const { showAlert } = useContext(AppContext);
 
   const fetchProfile = async () => {
     try {
       setLoading(true);
-      const { data } = await api.get('/profile');
+      const { data } = await api.get("/profile");
       const { name, phoneNumber, logo, email } = data.user;
-      setUserInfo({ userName: name || "", phone: phoneNumber || "", logo: logo || "", email: email || "" });
+      setUserInfo({
+        userName: name || "",
+        phone: phoneNumber || "",
+        logo: logo || "",
+        email: email || "",
+      });
     } catch (error) {
       console.log(error);
     } finally {
@@ -50,9 +61,9 @@ const Profile = () => {
     const response = await handleFileUpload({ file });
     if (response.data.success) {
       fetchProfile();
-      showAlert(response.data.message, 'success');
+      showAlert(response.data.message, "success");
     } else {
-      showAlert(response.message, 'error');
+      showAlert(response.message, "error");
     }
   };
 
@@ -61,10 +72,10 @@ const Profile = () => {
     const response = await handleFileUpload(data);
     if (response.data.success) {
       fetchProfile();
-      showAlert(response.data.message, 'success');
+      showAlert(response.data.message, "success");
       setIsEditing({ name: false, phone: false });
     } else {
-      showAlert(response.message, 'error');
+      showAlert(response.message, "error");
     }
   };
 
@@ -72,6 +83,7 @@ const Profile = () => {
     // Render a loading spinner or placeholder while data is being fetched
     return <div className="text-center mt-5">Loading...</div>;
   }
+
   return (
     <>
       <div className="mt-24 flex justify-center items-center">
@@ -80,12 +92,16 @@ const Profile = () => {
             {user.logo && (
               <>
                 <img
-                     src={user.logo?.startsWith("http") ? user.logo : `/images/${user.logo}`}
+                  src={
+                    user.logo?.startsWith("https")
+                      ? user.logo
+                      : `/image/${user.logo}`
+                  }
                   alt="Profile"
                   className="ring-2 ring-gray-300 dark:ring-gray-500 w-full h-full object-cover rounded-full"
                 />
                 <span class="top-8  ml-32  absolute w-5 h-5 bg-green-400 border-2 border-white dark:border-gray-800 rounded-full"></span>
-              </> 
+              </>
             )}
           </div>
           <div className="absolute right-0 top-2/3 transform -translate-y-1/2">
@@ -116,43 +132,58 @@ const Profile = () => {
         </div>
       </div>
       <div className="px-4 py-5 p-0">
-      <dl className="divide-y divide-gray-200">
-                    {['name', 'phone'].map(field => (
-                        <div key={field} className="py-3 grid grid-cols-3 gap-4 px-6">
-                            <div className="text-sm mt-1 font-medium text-gray-500">{field === 'name' ? 'Full name' : 'Phone number'}</div>
-                            <span className="mt-1 text-sm flex text-gray-500 mt-0 col-span-2">
-                                {isEditing[field] ? (
-                                    <>
-                                        <input
-                                            type={field === 'phone' ? 'number' : 'text'}
-                                            name={field === 'name' ? 'userName' : 'phone'}
-                                            value={user[field === 'name' ? 'userName' : 'phone']}
-                                            onChange={handleInputChange}
-                                            className="border border-gray-300 rounded-full bg-transparent px-2 py-1"
-                                        />
-                                        <svg onClick={() => toggleEditing(field)} className="h-7 w-7 absolute ml-40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                            <circle cx="12" cy="12" r="10" />
-                                            <line x1="15" y1="9" x2="9" y2="15" />
-                                            <line x1="9" y1="9" x2="15" y2="15" />
-                                        </svg>
-                                    </>
-                                ) : (
-                                    <>
-                                        <div>{user[field === 'name' ? 'userName' : 'phone']}</div>
-                                        <i className="fa fa-edit mt-1 cursor-pointer ml-2" onClick={() => toggleEditing(field)}></i>
-                                    </>
-                                )}
-                            </span>
-                        </div>
-                    ))}
-                    {(isEditing.name || isEditing.phone) && (
-                        <div className="pt-4">
-                            <button onClick={updateProfile} className="bg-transparent text-gray-500 font-semibold py-2 px-4 border border-gray-400 rounded shadow">
-                                Update
-                            </button>
-                        </div>
-                    )}
-                </dl>
+        <dl className="divide-y divide-gray-200">
+          {["name", "phone"].map((field) => (
+            <div key={field} className="py-3 grid grid-cols-3 gap-4 px-6">
+              <div className="text-sm mt-1 font-medium text-gray-500">
+                {field === "name" ? "Full name" : "Phone number"}
+              </div>
+              <span className="mt-1 text-sm flex text-gray-500 mt-0 col-span-2">
+                {isEditing[field] ? (
+                  <>
+                    <input
+                      type={field === "phone" ? "number" : "text"}
+                      name={field === "name" ? "userName" : "phone"}
+                      value={user[field === "name" ? "userName" : "phone"]}
+                      onChange={handleInputChange}
+                      className="border border-gray-300 rounded-full bg-transparent px-2 py-1"
+                    />
+                    <svg
+                      onClick={() => toggleEditing(field)}
+                      className="h-7 w-7 absolute ml-40"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="15" y1="9" x2="9" y2="15" />
+                      <line x1="9" y1="9" x2="15" y2="15" />
+                    </svg>
+                  </>
+                ) : (
+                  <>
+                    <div>{user[field === "name" ? "userName" : "phone"]}</div>
+                    <i
+                      className="fa fa-edit mt-1 cursor-pointer ml-2"
+                      onClick={() => toggleEditing(field)}
+                    ></i>
+                  </>
+                )}
+              </span>
+            </div>
+          ))}
+          {(isEditing.name || isEditing.phone) && (
+            <div className="pt-4">
+              <button
+                onClick={updateProfile}
+                className="bg-transparent text-gray-500 font-semibold py-2 px-4 border border-gray-400 rounded shadow"
+              >
+                Update
+              </button>
+            </div>
+          )}
+        </dl>
         <div className=" w-full  flex flex-col ">
           <Link className="mt-2  bg-gray-800 p-2 rounded-lg shadow-md flex flex-col-2 gap-2 items-center">
             <svg
@@ -171,10 +202,7 @@ const Profile = () => {
             </svg>
             <span className="text-xs  text-gray-500">Notifications</span>
           </Link>
-          <Link
-            to="/mylist"
-            className="mt-2 flex bg-gray-800 p-2 rounded-lg gap-2 shadow-md flex flex-col-2 items-center"
-          >
+          <div className="mt-2 flex bg-gray-800 p-2 rounded-lg gap-2 shadow-md flex flex-col-2 items-center">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
@@ -189,8 +217,8 @@ const Profile = () => {
                 d="M4 6h16M4 10h16M4 14h16M4 18h16"
               />
             </svg>
-            <span className="text-xs text-gray-500">My List</span>
-          </Link>
+            <Qrcode />
+          </div>
           <Link className="mt-2 flex bg-gray-800 p-2 gap-2 rounded-lg shadow-md flex flex-col-2 items-center">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -233,7 +261,7 @@ const Profile = () => {
             <span className="text-xs text-gray-500">Help</span>
           </button>
 
-          {!user.googleLogin && (
+          {user.googleLogin && (
             <Link
               to="/password-reset"
               className="mt-2 flex bg-gray-800 p-2 gap-2 rounded-lg shadow-md flex flex-col-2 items-center"
@@ -253,7 +281,20 @@ const Profile = () => {
               <span className="text-xs text-gray-500">Password Reset</span>
             </Link>
           )}
-          <div onClick={userService.logout} className="text-center text-xl text-gray-500 mt-3 ">
+           <Link
+              to="/payment"
+              className="mt-2 flex bg-gray-800 p-2 gap-2 rounded-lg shadow-md flex flex-col-2 items-center"
+            >
+             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"   className="h-6 w-6 text-gray-500">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z" />
+            </svg>
+
+              <span className="text-xs text-gray-500">Payment</span>
+            </Link>
+          <div
+            onClick={userService.logout}
+            className="text-center text-xl text-gray-500 mt-3 "
+          >
             Logout
             <div className="text-xs">version:14.11.2341.43.2.3.1</div>
           </div>

@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 const SearchBar = () => {
   const {
     state,
+    toggleSearch,
     searchInput,
   } = useContext(AppContext);
 
@@ -15,7 +16,7 @@ const SearchBar = () => {
       <div className={`search-bar-container w-full ${state.searchOpen ? 'active' : ''}`}>
         <div className=" nav fixed w-full">
           <i
-           onClick={state.toggleSearch}
+           onClick={toggleSearch}
             class="fa fa-arrow-left"
             style={{ fontSize: "24px" }}
             aria-hidden="true"

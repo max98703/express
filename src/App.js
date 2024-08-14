@@ -1,11 +1,13 @@
 import React, { useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import Navbar from "./components/Nav/Navbar";
 import SearchBar from "./components/Search/SearchBar";
 import Footer from "./components/Footer/Footer";
 import Login from "./components/Login/Login";
 import Profile from "./components/Profile/Profile";
 import Home from "./components/Home/Home";
+import Payment from "./components/Payment/Payment";
+import Paymentproccess from "./components/Payment/Paymentproccess";
 import SearchMovie from "./components/Search/SearchMovie";
 import Detail from "./components/Details/Detail";
 import Category from "./components/Category/Category";
@@ -13,9 +15,18 @@ import Reset from "./components/PasswordReset/Reset";
 import { userService } from "./Services/authentication.service";
 import * as PusherPushNotifications from "@pusher/push-notifications-web";
 
-const PrivateRoute = ({ element, ...rest }) => (
-  userService.loggedIn() ? element : <Navigate to="/login" replace />
-);
+const PrivateRoute = ({ element }) => {
+  return userService.loggedIn() ? (
+    <>
+      <Navbar />
+      {element}
+      <Footer />
+      <SearchBar/>
+    </>
+  ) : (
+    <Navigate to="/login" replace />
+  );
+};
 
 function App() {
   useEffect(() => {
@@ -24,7 +35,13 @@ function App() {
     });
 
     beamsClient.start()
-      .then(() => beamsClient.addDeviceInterest('login_success'))
+      .then(() => {
+        const user = userService.getUserData();
+        if (user) {
+          const userId = user.id; 
+          return beamsClient.addDeviceInterest(userId);
+        }
+      })
       .then(() => console.log('Successfully registered and subscribed!'))
       .catch(console.error);
 
@@ -34,24 +51,17 @@ function App() {
   }, []);
 
   return (
-    <Router>
-      {userService.loggedIn() && (
-        <>
-          <Navbar />
-          <SearchBar />
-          <Footer />
-        </>
-      )}
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/" element={<PrivateRoute element={<Home />} />} />
-        <Route path="/profile" element={<PrivateRoute element={<Profile />} />} />
-        <Route path="/movie/:movieName" element={<PrivateRoute element={<SearchMovie />} />} />
-        <Route path="/details/:id" element={<PrivateRoute element={<Detail />} />} />
-        <Route path="/category/:value" element={<PrivateRoute element={<Category />} />} />
-        <Route path="/password-reset" element={<PrivateRoute element={<Reset />} />} />
-      </Routes>
-    </Router>
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route path="/" element={<PrivateRoute element={<Home />} />} />
+      <Route path="/profile" element={<PrivateRoute element={<Profile />} />} />
+      <Route path="/payment" element={<PrivateRoute element={<Payment />} />} />
+      <Route path="/paymentproccess" element={<PrivateRoute element={<Paymentproccess />} />} />
+      <Route path="/movie/:movieName" element={<PrivateRoute element={<SearchMovie />} />} />
+      <Route path="/details/:id" element={<PrivateRoute element={<Detail />} />} />
+      <Route path="/category/:value" element={<PrivateRoute element={<Category />} />} />
+      <Route path="/password-reset" element={<PrivateRoute element={<Reset />} />} />
+    </Routes>
   );
 }
 

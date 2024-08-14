@@ -36,8 +36,9 @@ function setUserData(user) {
   }
   
   function getUserData() {
-    const user = localStorage.getItem('user');
-    return user ? JSON.parse(user) : null;
+    const token = getToken();
+    const decodedToken = jwtDecode(token);
+    return decodedToken;
   }
 
 function isTokenExpired(token) {
