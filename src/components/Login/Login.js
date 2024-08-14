@@ -1,26 +1,32 @@
-import React, { useEffect, useState, useContext } from "react";
+import React, { useEffect, useState, useContext, useRef } from "react";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { useGoogleLogin } from "@react-oauth/google";
 import { AppContext } from "../../context/AppContext";
+// import FacebookLogin from 'react-facebook-login';
+import useToggle from "../../hooks/useToggle";
 
 const Login = () => {
   const { login } = useAuth();
   const { showAlert } = useContext(AppContext);
 
+  const userRef = useRef();
+
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-    googleToken: ""
+    googleToken: "",
+    facebookToken: ""
   });
 
-  const { email, password, googleToken } = formData;
+  const { email, password, googleToken, facebookToken } = formData;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prevData) => ({ ...prevData, [name]: value }));
   };
-
+  
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -35,10 +41,18 @@ const Login = () => {
     }
   };
 
+  // const handleFacebookCallback = (response) => {
+  //   if (response.accessToken) {
+  //     setFormData((prevData) => ({ ...prevData, facebookToken: response.accessToken }));
+  //   }
+  // };
+
   const logn = useGoogleLogin({
     onSuccess: (codeResponse) => setFormData((prevData) => ({ ...prevData, googleToken: codeResponse.access_token })),
     onError: (error) => console.log("Login Failed:", error),
   });
+  
+  const [check, toggleCheck] = useToggle('persist', false);
 
   useEffect(() => {
     if (googleToken) {
@@ -54,10 +68,31 @@ const Login = () => {
         )
         .then((res) => {
           login(res.data);
+          console.log(res.data);
         })
         .catch((err) => console.log(err));
     }
   }, [googleToken, login]);
+
+  useEffect(() => {
+    if (facebookToken) {
+      axios
+        .get(
+          `https://graph.facebook.com/me?access_token=${facebookToken}&fields=id,name,email`,
+          {
+            headers: {
+              Authorization: `Bearer ${facebookToken}`,
+              Accept: "application/json",
+            },
+          }
+        )
+        .then((res) => {
+          login(res.data);
+          console.log(res.data);
+        })
+        .catch((err) => console.log(err));
+    }
+  }, [facebookToken, login]);
 
   return (
     <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8"
@@ -79,6 +114,7 @@ const Login = () => {
 
         <div className="mt-2 sm:mx-auto sm:w-full sm:max-w-md">
           <div className="rounded-lg py-8 px-4 sm:px-10">
+
             <form className="space-y-6" onSubmit={handleSubmit}>
               <div>
                 <label
@@ -94,6 +130,7 @@ const Login = () => {
                     type="email"
                     autoComplete="email"
                     required
+                    ref={userRef}
                     value={email}
                     onChange={handleChange}
                     className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
@@ -120,6 +157,15 @@ const Login = () => {
                     className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                   />
                 </div>
+                <div className="persistCheck mt-4">
+                    <input
+                        type="checkbox"
+                        id="persist"
+                        onChange={toggleCheck}
+                        checked={check}
+                    />
+                    <label  className="block text-sm font-medium text-white">Trust This Device</label>
+                </div>
               </div>
 
               <div>
@@ -138,6 +184,14 @@ const Login = () => {
               >
                 Sign in with Google 🚀
               </button>
+              {/* <FacebookLogin 
+                appId="1082538672269893"  
+                autoLoad={false}  
+                fields="name,email,picture"  
+                callback={handleFacebookCallback}
+                cssClass="inline-flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-700 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                icon="fa-facebook"
+              /> */}
             </div>
           </div>
         </div>
