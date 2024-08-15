@@ -28,7 +28,6 @@ const useMovieApi = (configObj) => {
           break;
         case "details":
           result = await fetchData(`${apiurl}&i=${id}`);
-          console.log(result);
           setData((prevState) => ({
             ...prevState,
             details: result || null,
@@ -42,7 +41,6 @@ const useMovieApi = (configObj) => {
           const trailerUrl = videoId
             ? `https://www.youtube.com/watch?v=${videoId}`
             : null;
-          console.log(trailerUrl);
           setData((prevState) => ({
             ...prevState,
             trailerUrl,

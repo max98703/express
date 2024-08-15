@@ -34,27 +34,24 @@ const AppContextProvider = ({ children }) => {
   const [id, setId] = useState(null);
   const [state, setState] = useState(initialState);
   const [alert, showAlert, hideAlert] = useAlertHook();
-  const { trailerUrl } = useMovieApi({ type: 'trailer', id:id });
-  const {season, details, loading} =  Promise.all([
-    useMovieApi({type:'season', id:id}),
-    useMovieApi({type:'details', id:id}),
-  ]);
-
-  useEffect(() => {
-    if (trailerUrl) {
-      setState(prevState => ({ ...prevState, trailerUrl }));
-    }
-  }, [trailerUrl]);
+  const {  season, loading } = useMovieApi({ type: 'season', id });
+  const {  details } = useMovieApi({ type: 'details', id });
+  const {  trailerUrl } = useMovieApi({ type: 'trailer', id });
 
   // Effect to update state when new data is fetched
   useEffect(() => {
-    setState(prevState => ({
-      ...prevState,
-      season: season || [],
-      details: details || null,
-      loading: loading,
-    }));
-  }, [season, details, trailerUrl,loading]);
+    if (!loading) {
+      setState(prevState => ({
+        ...prevState,
+        season: season || [],
+        details: details || null,
+        trailerUrl: trailerUrl || '',
+        loading: loading,
+      }));
+    }
+  }, [season, details, trailerUrl, loading]);
+
+
   const fetchTrailerUrl = async (id) => {
     console.log(id);
     if (!id) {
