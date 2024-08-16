@@ -48,6 +48,12 @@
     "lint": "eslint src/**",
     "eject": "react-scripts eject"
   },
+    "eslintIgnore": [
+      "src/components/",
+      "src/index.css",
+      "src/App.css"
+    ]
+  ,
   "eslintConfig": {
     "extends": [
       "react-app",
@@ -74,4 +80,5 @@
     "http-proxy-middleware": "^3.0.0",
     "react-router-dom": "^6.22.3"
   }
+  
 }

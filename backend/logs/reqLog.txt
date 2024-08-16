@@ -419,3 +419,11 @@
 2024-08-16	15:00:00	c87805af-563f-41a0-b8e4-59d28281a206	GET	http://localhost:3000	/profile
 2024-08-16	15:49:56	c905f500-5c8d-448a-82bb-c33c1524df29	OPTIONS	http://localhost:3000	/profile
 2024-08-16	15:49:56	fbae0937-aa58-4c1b-a9f7-7ca6d3f8f1a1	GET	http://localhost:3000	/profile
+2024-08-16	16:14:49	0e6eb80f-3bb1-4188-8ac3-614fb06bd649	OPTIONS	http://localhost:3000	/login
+2024-08-16	16:14:49	4e6437ed-825d-4b95-a6de-61f1c8b139b9	POST	http://localhost:3000	/login
+2024-08-16	16:14:52	3338f2f2-6bbd-479a-a515-5f445094cc30	OPTIONS	http://localhost:3000	/profile
+2024-08-16	16:14:52	da344eef-7e5f-49ef-8be1-579281351f1f	GET	http://localhost:3000	/profile
+2024-08-16	16:24:22	620d2f04-39b8-4f9b-9ef2-7c3c6b3486e6	OPTIONS	http://localhost:3000	/profile
+2024-08-16	16:24:22	863500c1-636d-4bf2-996c-4515899f4e68	GET	http://localhost:3000	/profile
+2024-08-16	16:24:42	530b6d8d-f326-46e7-9951-84163a1144fe	OPTIONS	http://localhost:3000	/profile
+2024-08-16	16:24:42	261fbf32-7337-4e64-aa3b-795d9b409382	GET	http://localhost:3000	/profile
