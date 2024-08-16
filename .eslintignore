@@ -2,6 +2,6 @@
 test/
 
 # Ignore specific files
-src/components/** 
+src/components/
 src/index.css
 src/App.css
