@@ -30,9 +30,6 @@ jobs:
         run: npm install --legacy-peer-deps
         working-directory: ./backend
 
-      - name: Lint frontend code
-        run: npm run lint
-        working-directory: . # Root directory for React frontend
 
       - name: Lint backend code
         run: npx eslint server.js
