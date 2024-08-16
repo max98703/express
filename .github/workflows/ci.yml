@@ -23,12 +23,12 @@ jobs:
           node-version: '20' # Adjust based on your Node version
 
       - name: Install frontend dependencies
-        run: npm install
-        working-directory: . # Root directory for React frontend
+        run: npm install --legacy-peer-deps
+        working-directory: .
 
       - name: Install backend dependencies
-        run: npm install
-        working-directory: ./backend # Backend directory for Express
+        run: npm install --legacy-peer-deps
+        working-directory: ./backend
 
       - name: Lint frontend code
         run: npm run lint

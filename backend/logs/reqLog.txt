@@ -411,3 +411,5 @@
 2024-08-16	11:42:52	f6bc6e61-e23b-44ef-9271-099c36eb2129	GET	http://localhost:3000	/Qrcode
 2024-08-16	11:43:07	deb09a02-893b-4250-b636-b2d42b991807	OPTIONS	http://localhost:3000	/create-payment-intent
 2024-08-16	11:43:07	1687cbac-ee5e-4e4b-b1cc-1a4d7c5c7eee	POST	http://localhost:3000	/create-payment-intent
+2024-08-16	14:48:51	80311cc7-d912-42d6-8a9c-b38643d59f5c	OPTIONS	http://localhost:3000	/profile
+2024-08-16	14:48:51	3336bfe2-2703-4a3f-a3aa-d64c7e0dfef7	GET	http://localhost:3000	/profile
