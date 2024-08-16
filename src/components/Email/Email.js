@@ -1,39 +1,85 @@
 function generateEmailContent(user) {
   return `
-    <div>
-      <section class="max-w-2xl px-6 py-8 mx-auto bg-white dark:bg-gray-900 shadow-md rounded-lg border">
-        <header>
-          <a href="#">
-            <img class="w-auto h-7 sm:h-8" src="https://merakiui.com/images/full-logo.svg" alt="">
-          </a>
-        </header>
-    
-        <main class="mt-8">
-          <h2 class="text-gray-700 dark:text-gray-200">Hi ${user.name},</h2>
-    
-          <p class="mt-2 leading-loose text-gray-600 dark:text-gray-300">
-            You have successfully logged in. Welcome back to <span class="font-semibold">Test Omdb</span>.
-          </p>
-          
-          <button class="px-6 py-2 mt-4 text-sm font-medium tracking-wider text-white capitalize transition-colors duration-300 transform bg-blue-600 rounded-lg hover:bg-blue-500 focus:outline-none focus:ring focus:ring-blue-300 focus:ring-opacity-80">
-            Visit Dashboard
-          </button>
-          
-          <p class="mt-8 text-gray-600 dark:text-gray-300">
-            Thanks, <br>
-            Meraki UI team
-          </p>
-        </main>
-        
-        <footer class="mt-8">
-          <p class="text-gray-500 dark:text-gray-400">
-            This email was sent to <a href="#" class="text-blue-600 hover:underline dark:text-blue-400" target="_blank">
-            ${user.email}</a>.
-          </p>
-          <p class="mt-3 text-gray-500 dark:text-gray-400">© ${new Date().getFullYear()} Meraki UI. All Rights Reserved.</p>
-        </footer>
-      </section>
+    <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Notification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 20px auto;
+            background: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        .email-header {
+            background: #e50914;
+            color: #ffffff;
+            padding: 20px;
+            text-align: center;
+            border-bottom: 4px solid #b81d24;
+        }
+        .email-body {
+            padding: 20px;
+            text-align: center;
+        }
+        .email-body h1 {
+            margin: 0 0 10px;
+            font-size: 24px;
+        }
+        .email-body p {
+            margin: 0 0 20px;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+        .email-body a {
+            display: inline-block;
+            font-size: 16px;
+            color: #ffffff;
+            background-color: #e50914;
+            padding: 10px 20px;
+            border-radius: 4px;
+            text-decoration: none;
+        }
+        .email-footer {
+            background: #f4f4f4;
+            text-align: center;
+            padding: 10px;
+            font-size: 14px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="email-header">
+            <h1>Login Alert</h1>
+        </div>
+        <div class="email-body">
+            <h1>We Noticed a Login</h1>
+            <p>Hello, ${user.name}</p>
+            <p>We detected a login to your account from a new device or browser. If this was you, no action is required. If you did not log in, please secure your account immediately.</p>
+            <p>If you have any concerns or need assistance, please contact our support team.</p>
+            <a href="https://support.google.com/contacts/?hl=en#topic=9160153">Contact Support</a>
+        </div>
+        <div class="email-footer">
+            <p>&copy; 2024 Your Company. All rights reserved.</p>
+        </div>
     </div>
+</body>
+</html>
+
   `;
 }
 

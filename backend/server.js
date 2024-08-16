@@ -9,9 +9,11 @@ const userRoutes = require('./routes/users');
 const stripe = require('./routes/stripe');
 const authenticateUser = require('./middleware/authenticateUser');
 const { sendEmailWithReceipt} = require('./services/service');
+const {checkExpiredSubscriptions} = require('./services/cronJobs')
 const bodyParser = require('body-parser');
 const Stripe = require('stripe');
 const stripes = Stripe(process.env.STRIPE_SECRET_KEY);
+const cron = require("node-cron");
 
 app.use(session({
   secret: 'Avdqead34@#43@#$', 
@@ -20,6 +22,9 @@ app.use(session({
   cookie: { maxAge: 30 * 60 * 1000 } ,
 }));
 
+cron.schedule('*/5 * * * * *', async () => {
+  await checkExpiredSubscriptions();
+});
 
 app.post('/webhook', bodyParser.raw({ type: 'application/json' }), async(req, res) => {
   const sig = req.headers['stripe-signature'];

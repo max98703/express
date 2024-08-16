@@ -10,6 +10,7 @@ import Payment from "./components/Payment/Payment";
 import Paymentproccess from "./components/Payment/Paymentproccess";
 import SearchMovie from "./components/Search/SearchMovie";
 import Detail from "./components/Details/Detail";
+import Missing from "./components/Missing/Missing";
 import Category from "./components/Category/Category";
 import Reset from "./components/PasswordReset/Reset";
 import { userService } from "./Services/authentication.service";
@@ -61,6 +62,7 @@ function App() {
       <Route path="/details/:id" element={<PrivateRoute element={<Detail />} />} />
       <Route path="/category/:value" element={<PrivateRoute element={<Category />} />} />
       <Route path="/password-reset" element={<PrivateRoute element={<Reset />} />} />
+      <Route path="*" element={<Missing />} />
     </Routes>
   );
 }
