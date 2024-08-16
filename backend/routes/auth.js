@@ -1,79 +1,108 @@
-const express = require('express');
-const router = express.Router();
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const { generateToken, getUserByEmails, getUserBygoogleId,  updateUser, insertUser, comparePasswords, sendLoginEmail, publishLoginSuccessNotification, sendResponse, eventLog } = require('../services/service');
-const { query } = require('../db/db');
-const authenticateUser = require('../middleware/authenticateUser');
-const secret = process.env.SECRET_KEY || 'some other secret as default';
 
-router.post("/login", async (req, res) => {
-  const { email, password, id, picture, googleLogin } = req.body;
-  const user = id ? await getUserBygoogleId(id) : await getUserByEmails(email);
-  const token = user?.token || generateToken();
+const express = require("express");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const { generateToken, comparePasswords, sendLoginEmail, publishLoginSuccessNotification, sendResponse, eventLog } = require("../services/service");
+const authenticateUser = require("../middleware/authenticateUser");
+const UserRepository = require("../db/repository/user-repository");
+const {APIError} = require("../utils/app-errors");
 
-  if (id) {
-    await (user
-      ? updateUser(req.body, token , user.id)
-      : insertUser({ ...req.body, googleLogin: 1 }, token));
-  } else {
-    if (!user || !(await comparePasswords(password, user.password))) {
-      return sendResponse(res, 401, false, "Invalid credentials");
-    }
+class AuthRouter {
+  constructor() {
+    this.router = express.Router();
+    this.secret = process.env.SECRET_KEY || "some other secret as default";
+    this.userRepository = new UserRepository(); 
+    this.initializeRoutes();
   }
 
-  const payload = {
-    id: user?.id || id,
-    name: user?.name || req.body.name,
-    email,
-    token,
-    googleLogin: user?.googleLogin || googleLogin,
-    logo: user?.logo || picture,
-    phoneNumber: user?.phoneNumber || null,
-    admin : user?.admin || null,
-  };
-  
-  req.session.token = await jwt.sign(payload, secret, { expiresIn: 36000 });
+  initializeRoutes() {
+    this.router.post("/login", this.login.bind(this));
+    this.router.post("/reset-password", authenticateUser, this.resetPassword.bind(this));
+    this.router.post("/checkTokenValidity", this.checkTokenValidity.bind(this));
+  }
 
-  process.nextTick(async () => {
+  async login(req, res) {
+    const { email, password, id, picture, googleLogin } = req.body;
+    const user = id ? await this.userRepository.getUserByGoogleId(id) : await this.userRepository.getUserByEmail(email);
+    const token = user?.token || generateToken();
+
     try {
-      await publishLoginSuccessNotification(payload);
-      await sendLoginEmail(payload);
-      await eventLog(req, payload);
+      if (id) {
+        await (user
+          ? this.userRepository.updateUser(req.body, token)
+          : this.userRepository.insertUser({ ...req.body, googleLogin: 1 }, token));
+      } else {
+        if (!user || !(await comparePasswords(password, user.password))) {
+          return sendResponse(res, 401, false, "Invalid credentials");
+        }
+      }
+
+      const payload = {
+        id: user?.id || id,
+        name: user?.name || req.body.name,
+        email,
+        token,
+        googleLogin: user?.googleLogin || googleLogin,
+        logo: user?.logo || picture,
+        phoneNumber: user?.phoneNumber || null,
+        admin: user?.admin || null,
+      };
+
+      req.session.token = await jwt.sign(payload, this.secret, { expiresIn: 36000 });
+
+      process.nextTick(async () => {
+        try {
+          await publishLoginSuccessNotification(payload);
+          await sendLoginEmail(payload);
+          await eventLog(req, payload);
+        } catch (error) {
+          throw new APIError("Something went wrong during post-login actions.", error);
+        }
+      });
+
+      return sendResponse(res, 200, true, "Login successful and email sent", req.session.token);
     } catch (error) {
-      console.error("Error executing background tasks:", error);
+      console.error("Error during login:", error);
+      return sendResponse(res, 500, false, "Internal Server Error");
     }
-  });
-  return sendResponse(res, 200, true, "Login successful and email sent", req.session.token);
-});
-
-router.post('/reset-password', authenticateUser, async (req, res) => {
-  const { currentPassword, newPassword, confirmPassword } = req.body;
-  const { id } = req.user;
-
-  if (!id) return sendResponse(res, 400, false, 'User ID is required.');
-
-  const [user] = await query('SELECT * FROM users WHERE id = ?', [id]);
-  if (!user) return sendResponse(res, 404, false, 'User not found.');
-  if (!(await comparePasswords(currentPassword, user.password))) return sendResponse(res, 401, false, 'Invalid current password.');
-  if (newPassword !== confirmPassword) return sendResponse(res, 400, false, 'New password and confirm password do not match.');
-
-  const hashedPassword = await bcrypt.hash(newPassword, 10);
-  await query('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, id]);
-
-  return sendResponse(res, 200, true, 'Password reset successful.');
-});
-
-router.post("/checkTokenValidity", async (req, res) => {
-  const { token } = req.body;
-  try {
-    const results = await query("SELECT * FROM users WHERE token = ?", [token]);
-    return sendResponse(res, results.length > 0 ? 200 : 401, results.length > 0, results.length > 0 ? undefined : "Invalid token");
-  } catch (error) {
-    console.error("Error during token validation:", error);
-    return sendResponse(res, 500, false, "Internal Server Error");
   }
-});
 
+  async resetPassword(req, res) {
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+    const { id } = req.user;
 
-module.exports = router;
+    if (!id) return sendResponse(res, 400, false, "User ID is required.");
+
+    try {
+      const user = await this.userRepository.getUserById(id);
+      if (!user) return sendResponse(res, 404, false, "User not found.");
+      if (!(await comparePasswords(currentPassword, user.password))) return sendResponse(res, 401, false, "Invalid current password.");
+      if (newPassword !== confirmPassword) return sendResponse(res, 400, false, "New password and confirm password do not match.");
+
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      await this.userRepository.updateUser({ id }, hashedPassword);
+
+      return sendResponse(res, 200, true, "Password reset successful.");
+    } catch (error) {
+      console.error("Error during password reset:", error);
+      return sendResponse(res, 500, false, "Internal Server Error");
+    }
+  }
+
+  async checkTokenValidity(req, res) {
+    const { token } = req.body;
+    try {
+      const user = await this.userRepository.getUserByEmail(token); // Adjust if token is not an email
+      return sendResponse(res, user ? 200 : 401, !!user, user ? undefined : "Invalid token");
+    } catch (error) {
+      console.error("Error during token validation:", error);
+      return sendResponse(res, 500, false, "Internal Server Error");
+    }
+  }
+
+  getRouter() {
+    return this.router;
+  }
+}
+
+module.exports = new AuthRouter().getRouter();

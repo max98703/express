@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Stripe = require('stripe');
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
+const { APIError, STATUS_CODES } = require('../utils/app-errors')
 
 router.post('/create-payment-intent', async (req, res) => {
     try {
@@ -34,8 +35,8 @@ router.post('/create-payment-intent', async (req, res) => {
       });
   
     } catch (error) {
-      console.error('Error creating payment intent:', error);
-      res.status(500).json({ error:error });
+      throw new APIError('Error creating payment intent:', STATUS_CODES.BAD_REQUEST, error );
+       //return res.status(500).json({ message: error });
     }
   });
   
@@ -50,11 +51,10 @@ router.post('/create-payment-intent', async (req, res) => {
         return res.status(404).json({ error: 'No customer associated with this payment intent' });
       }
   
-    //const subscription = customer.subscriptions.data[0]; // Assuming one subscription
       res.json({ stripeSubscriptionId: paymentIntent });
     } catch (error) {
-      console.error('Error retrieving subscription:', error);
-      res.status(500).json({ error: 'Failed to retrieve subscription' });
+      throw new APIError('Error retrieving subscription:', error);
+      //res.status(500).json({ error: 'Failed to retrieve subscription' });
     }
   });
 
@@ -63,7 +63,6 @@ router.post('/create-payment-method', async (req, res) => {
     const { cardNumber, expMonth, expYear, cvc } = req.body;
   
     try {
-      // Create a payment method with the provided card details
       const paymentMethod = await stripe.paymentMethods.create({
         type: 'card',
         card: {
@@ -82,8 +81,8 @@ router.post('/create-payment-method', async (req, res) => {
         expYear: paymentMethod.card.exp_year,
       });
     } catch (error) {
-      console.error('Error creating payment method:', error);
-      res.status(500).json({ error: error });
+      throw new APIError('Error creating payment method:', error);
+      //res.status(500).json({ error: error });
     }
   });
  

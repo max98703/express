@@ -2,23 +2,24 @@ const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 const { query, transporter, beamsClient } = require("../db/db");
 const { generateEmailContent } = require("../../src/components/Email/Email");
+const { generateStripContent } = require("../../src/components/Email/stripEmail")
+const { generateSubscriptionContent } = require("../../src/components/Email/subscription")
 const geoip = require("geoip-lite");
 const fetch = require("node-fetch"); // Ensure node-fetch is required
 
 
 const generateToken = () => crypto.randomBytes(32).toString("hex");
 
-const sendLoginEmail = async (user) => {
+const sendLoginEmail = async (user, subscription = null) => {
   const mailOptions = {
     from: process.env.GMAIL_USER,
-    to: user.email,
-    subject: "Login Notification",
-    html: generateEmailContent(user),
+    to: subscription ? user : user.email,
+    subject: subscription ? "Subscription Expired" : "Login Notification",
+    html: subscription ? generateSubscriptionContent() : generateEmailContent(user),
   };
 
   try {
-    const { response } = await transporter.sendMail(mailOptions);
-    console.log("Email sent:", response);
+    await transporter.sendMail(mailOptions);
   } catch (error) {
     console.error("Error sending email:", error);
     throw new Error("Failed to send email.");
@@ -27,12 +28,12 @@ const sendLoginEmail = async (user) => {
 const sendEmailWithReceipt = async (intent) => {
   console.log("ok", intent.metadata.user_id);
   let user = await getUserByEmail(intent.metadata.user_id);
-
+  console.log(user);
   const mailOptions = {
     from: process.env.GMAIL_USER,
     to: user.email,
     subject: intent.description,
-    html: EmailContent(user, intent),
+    html: generateStripContent(user, intent),
   };
 
   try {
@@ -44,69 +45,10 @@ const sendEmailWithReceipt = async (intent) => {
   }
 };
 
-const EmailContent =  (user, intent) => {
-  return `
-    <div style="background-color: #f9f9f9; border-radius: 10px; padding: 20px; border: 1px solid #ddd;">
-      <h2 style="margin: 0; font-family: Arial, sans-serif;">Dear ${user.name},</h2>
-      <p style="font-family: Arial, sans-serif;">Thank you for your payment. Your transaction was successful!</p>
-      <p style="font-family: Arial, sans-serif;">Transaction ID: ${intent.id}</p>
-      <p style="font-family: Arial, sans-serif;">Balance Transaction: ${intent.balance_transaction}</p>
-      <p style="font-family: Arial, sans-serif;">You can view your receipt here: <a href="${intent.receipt_url}" style="color: #1a73e8;">Receipt Link</a></p>
-      <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSFHVxZMKfYxX6i4wIyCSuxb-c96ViqtIcpNA&s" alt="Company Logo" style="width: 200px; height: auto; margin-top: 20px; border-radius: 8px;"/>
-      <p style="font-family: Arial, sans-serif;">We appreciate your business.</p>
-      <br>
-      <p style="font-family: Arial, sans-serif;">Best regards,</p>
-      <p style="font-family: Arial, sans-serif;">Your Company</p>
-    </div>
-  `;
-};
-
-
-
-const getUserByEmails = async (email) => {
-  const [user] = await query("SELECT * FROM users WHERE email = ? AND (googleLogin IS NULL OR googleLogin = 0)", [email]);
-  return user;
-};
-
-
-const getUserBygoogleId = async (id) => {
-  const [user] = await query("SELECT * FROM users WHERE id = ?", [id]);
-  return user;
-};
 
 const getUserByEmail = async (email) => {
-  const [user] = await query("SELECT * FROM users WHERE email = ?", [email]);
+  const [user] = await query("SELECT * FROM users WHERE id = ?", [email]);
   return user;
-};
-
-const getUserLogs = async (id) => {
-  const rows = await query(
-    "SELECT user_id, username, email, location, created_at FROM userlog WHERE user_id = ?",
-    [id]
-  );
-  return rows;
-};
-
-const updateUser = async (userData, token) => {
-  return query("UPDATE users SET name = ?, token = ? WHERE id = ?", [
-    userData.name,
-    token,
-    userData.id,
-  ]);
-};
-
-const insertUser = async (userData, token) => {
-  return query(
-    "INSERT INTO users (id, email, name, logo, token, googleLogin) VALUES (?, ?, ?, ?, ?, ?)",
-    [
-      userData.id,
-      userData.email,
-      userData.name,
-      userData.picture,
-      token,
-      userData.googleLogin,
-    ]
-  );
 };
 
 const comparePasswords = async (password, hashedPassword) => {
@@ -158,14 +100,9 @@ module.exports = {
   generateToken,
   sendLoginEmail,
   getUserByEmail,
-  updateUser,
-  insertUser,
   comparePasswords,
   publishLoginSuccessNotification,
   sendResponse,
   sendEmailWithReceipt,
   eventLog,
-  getUserLogs,
-  getUserBygoogleId,
-  getUserByEmails,
 };
