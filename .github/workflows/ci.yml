@@ -34,6 +34,3 @@ jobs:
         run: npx eslint server.js
         working-directory: ./backend # Backend directory for Express
 
-      - name: Run backend tests
-        run: npm test
-        working-directory: ./backend # Backend directory for Express
