@@ -1,3 +1,5 @@
+/* eslint no-undef: "off" */
+
 const express = require('express');
 const router = express.Router();
 const Stripe = require('stripe');

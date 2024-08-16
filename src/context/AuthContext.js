@@ -2,7 +2,6 @@ import React, { createContext, useState, useContext } from 'react';
 import api from '../api/api';
 import { userService } from "../Services/authentication.service";
 import { useNavigate } from 'react-router-dom';
-import usePusherBeams from '../hooks/usePusherBeam';
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {

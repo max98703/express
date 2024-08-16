@@ -1,3 +1,4 @@
+/* eslint no-undef: "off" */
 
 const express = require("express");
 const bcrypt = require("bcryptjs");

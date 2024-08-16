@@ -413,3 +413,9 @@
 2024-08-16	11:43:07	1687cbac-ee5e-4e4b-b1cc-1a4d7c5c7eee	POST	http://localhost:3000	/create-payment-intent
 2024-08-16	14:48:51	80311cc7-d912-42d6-8a9c-b38643d59f5c	OPTIONS	http://localhost:3000	/profile
 2024-08-16	14:48:51	3336bfe2-2703-4a3f-a3aa-d64c7e0dfef7	GET	http://localhost:3000	/profile
+2024-08-16	14:59:56	eca7d636-f9bb-40ef-b1c2-a96947fdd438	OPTIONS	http://localhost:3000	/login
+2024-08-16	14:59:56	361bc969-692c-4a71-b949-b4e0a7503310	POST	http://localhost:3000	/login
+2024-08-16	15:00:00	e4158a1a-b68f-464a-85fa-88b928d01db4	OPTIONS	http://localhost:3000	/profile
+2024-08-16	15:00:00	c87805af-563f-41a0-b8e4-59d28281a206	GET	http://localhost:3000	/profile
+2024-08-16	15:49:56	c905f500-5c8d-448a-82bb-c33c1524df29	OPTIONS	http://localhost:3000	/profile
+2024-08-16	15:49:56	fbae0937-aa58-4c1b-a9f7-7ca6d3f8f1a1	GET	http://localhost:3000	/profile

@@ -1,3 +1,4 @@
+/* eslint no-undef: "off" */
 const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 const { query, transporter, beamsClient } = require("../db/db");

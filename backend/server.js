@@ -1,3 +1,6 @@
+/* eslint no-undef: "off" */
+/* eslint no-case-declarations: "off" */
+
 const express = require('express');
 const cors = require('cors');
 const app = express();

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { fetchData } from "../utils/apiUtils";
 import { apiurl, youtubeapi } from "../baseUrl";
 
@@ -11,14 +11,13 @@ const useMovieApi = (configObj) => {
     loading: false,
   });
 
- 
-  const fetchDataFromApi = async () => {
-    if (!id) return; 
+  const fetchDataFromApi = useCallback(async () => {
+    if (!id) return;
     setData((prevState) => ({ ...prevState, loading: true }));
     try {
       let result;
       switch (type) {
-        case "season":
+        case "season": {
           result = await fetchData(`${apiurl}&i=${id}&season=1`);
           setData((prevState) => ({
             ...prevState,
@@ -26,7 +25,8 @@ const useMovieApi = (configObj) => {
             loading: false,
           }));
           break;
-        case "details":
+        }
+        case "details": {
           result = await fetchData(`${apiurl}&i=${id}`);
           setData((prevState) => ({
             ...prevState,
@@ -34,7 +34,8 @@ const useMovieApi = (configObj) => {
             loading: false,
           }));
           break;
-        case "trailer":
+        }
+        case "trailer": {
           console.log(id);
           const videoData = await fetchData(`${youtubeapi}&i=${id}`);
           const videoId = videoData?.items[0]?.id?.videoId;
@@ -47,6 +48,7 @@ const useMovieApi = (configObj) => {
             loading: false,
           }));
           break;
+        }
         default:
           console.error("Invalid type");
           setData((prevState) => ({ ...prevState, loading: false }));
@@ -55,14 +57,13 @@ const useMovieApi = (configObj) => {
       console.error("Error fetching data:", error);
       setData((prevState) => ({ ...prevState, loading: false }));
     }
-  };
+  }, [type, id]);
 
   useEffect(() => {
     if (type && id) {
       fetchDataFromApi();
     }
-  }, [type, id]); 
-
+  }, [type, id, fetchDataFromApi]);
   return data;
 };
 

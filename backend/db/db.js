@@ -1,3 +1,5 @@
+/* eslint no-undef: "off" */
+
 const mysql = require('mysql');
 const express = require('express');
 const nodemailer = require('nodemailer');
