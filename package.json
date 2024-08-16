@@ -48,12 +48,7 @@
     "lint": "eslint src/**",
     "eject": "react-scripts eject"
   },
-    "eslintIgnore": [
-      "src/components/",
-      "src/index.css",
-      "src/App.css"
-    ]
-  ,
+  
   "eslintConfig": {
     "extends": [
       "react-app",
