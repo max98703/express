@@ -5,9 +5,10 @@
   "main": "server.js",
   "proxy": "http://localhost:5000",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "lint": "eslint .",
+    "test": "jest"
   },
   "keywords": [],
   "author": "",
@@ -39,6 +40,11 @@
     "@babel/cli": "^7.24.7",
     "@babel/core": "^7.24.7",
     "@babel/preset-env": "^7.24.7",
-    "@babel/preset-react": "^7.24.7"
+    "@babel/preset-react": "^7.24.7",
+    "@eslint/js": "^9.9.0",
+    "eslint": "^9.9.0",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-react": "^7.35.0",
+    "globals": "^15.9.0"
   }
 }
