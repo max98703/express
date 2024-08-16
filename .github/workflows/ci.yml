@@ -22,10 +22,6 @@ jobs:
         with:
           node-version: '20' # Adjust based on your Node version
 
-      - name: Install frontend dependencies
-        run: npm install --legacy-peer-deps
-        working-directory: .
-
       - name: Install backend dependencies
         run: npm install --legacy-peer-deps
         working-directory: ./backend
