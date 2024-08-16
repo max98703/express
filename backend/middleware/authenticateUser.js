@@ -1,3 +1,4 @@
+/* eslint no-undef: "off" */
 
 const jwt = require('jsonwebtoken');
 

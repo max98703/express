@@ -1,0 +1,36 @@
+name: CI Pipeline
+
+# Trigger the workflow on push or pull request events to the main branch
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20' # Adjust based on your Node version
+
+      - name: Install frontend dependencies
+        run: npm install --legacy-peer-deps
+        working-directory: .
+
+      - name: Install backend dependencies
+        run: npm install --legacy-peer-deps
+        working-directory: ./backend
+
+      - name: Lint backend code
+        run: npx eslint server.js
+        working-directory: ./backend # Backend directory for Express
+

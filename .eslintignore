@@ -1,0 +1,7 @@
+# Ignore all files in the `test` directory
+test/
+
+# Ignore specific files
+src/components/
+src/index.css
+src/App.css
