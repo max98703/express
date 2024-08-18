@@ -101,9 +101,6 @@ class AuthRouter {
     }
   }
 
-  getRouter() {
-    return this.router;
-  }
 }
 
-module.exports = new AuthRouter().getRouter();
+module.exports = new AuthRouter().router;
