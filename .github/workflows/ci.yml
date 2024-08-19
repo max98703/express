@@ -1,6 +1,5 @@
 name: CI Pipeline
 
-# Trigger the workflow on push or pull request events to the main branch
 on:
   push:
     branches:
@@ -31,6 +30,5 @@ jobs:
         working-directory: ./backend
 
       - name: Lint backend code
-        run: npx eslint server.js
-        working-directory: ./backend # Backend directory for Express
-
+        run: npx eslint . --ext .js,.jsx,.ts,.tsx
+        working-directory: ./backend
