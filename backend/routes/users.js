@@ -9,14 +9,23 @@ const UserLoginRepository = require("../db/repository/user-repository");
 const { upload } = require("../db/db");
 const { createObjectCsvWriter } = require("csv-writer");
 
+class UserController {
+  constructor() {
+    this.userRepository = new UserRepository();
+    this.router = express.Router();
+    this.initializeRoutes();
+  }
 
-const userRepository = new UserRepository();
+  initializeRoutes() {
+    this.router.post("/upload-profile-picture", upload, this.uploadProfilePicture.bind(this));
+    this.router.get("/profile", this.getProfile.bind(this));
+    this.router.get("/Qrcode", this.generateQRCode.bind(this));
+  }
 
-router.post("/upload-profile-picture", upload, async (req, res) => {
-  const userId = req.user.id;
-  const { name, phone } = req.body;
-  const { file } = req;
-
+  async uploadProfilePicture(req, res) {
+    const userId = req.user.id;
+    const { name, phone } = req.body;
+    const { file } = req;
 
   try {
     if (name || phone) {
