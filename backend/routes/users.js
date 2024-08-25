@@ -68,12 +68,10 @@ router.get("/Qrcode", async (req, res) => {
       ],
     }).writeRecords(userLogs);
 
-
     res.json({ success: true, url: `http://localhost:3000/downloads/${filename}` });
   } catch (error) {
     throw new APIError("Error generating CSV:", error);
   }
 });
-
 
 module.exports = router;
