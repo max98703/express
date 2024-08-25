@@ -37,6 +37,7 @@ function setUserData(user) {
   
   function getUserData() {
     const token = getToken();
+    if(!token) return;
     const decodedToken = jwtDecode(token);
     return decodedToken;
   }

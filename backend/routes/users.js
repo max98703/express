@@ -4,13 +4,13 @@ const express = require("express");
 const path = require("path");
 const { sendResponse } = require("../services/service");
 const { APIError } = require('../utils/app-errors');
-const UserRepository = require("../db/repository/user-repository");
+const UserLoginRepository = require("../db/repository/user-repository");
 const { upload } = require("../db/db");
 const { createObjectCsvWriter } = require("csv-writer");
 
 class UserController {
   constructor() {
-    this.userRepository = new UserRepository();
+    this.userRepository = UserLoginRepository;
     this.router = express.Router();
     this.initializeRoutes();
   }
@@ -28,7 +28,7 @@ class UserController {
 
     try {
       if (name || phone) {
-        await this.userRepository.updateUserDetails({ name, phoneNumber: phone }, userId);
+        await this.userRepository.update(userId, { name, phoneNumber: phone });
       }
 
       if (file) {
@@ -43,7 +43,7 @@ class UserController {
     }
   }
 
-  async getProfile(req, res) {
+   async getProfile(req, res) {
     try {
       const userId = req.user.email; // Adjust if email isn't used for fetching user
       const userProfile = await this.userRepository.getUserByEmail(userId);
@@ -52,11 +52,11 @@ class UserController {
         : sendResponse(res, 404, false, "User profile not found.");
     } catch (error) {
       throw new APIError("Error fetching user profile:", error);
-    }
+   }
   }
 
   async generateQRCode(req, res) {
-    try {
+   try {
       const userId = req.user.id;
       const userLogs = await this.userRepository.getUserLogs(userId);
       const filename = `login_logs_${userId}_${Date.now()}.csv`;
