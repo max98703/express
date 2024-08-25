@@ -23,6 +23,7 @@ router.post("/upload-profile-picture", upload, async (req, res) => {
   const { name, phone } = req.body;
   const { file } = req;
 
+
   try {
     if (name || phone) {
       await userRepository.updateUserDetails({ name, phoneNumber: phone }, userId);
