@@ -6,6 +6,7 @@ const nodemailer = require('nodemailer');
 const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
+const Sequelize = require('sequelize');
 const PushNotifications = require('@pusher/push-notifications-server');
 require('dotenv').config();
 
@@ -33,6 +34,27 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+const sequelize = new Sequelize('movies', 'root', '', {
+  host: 'localhost',
+  dialect: 'mysql',
+  pool: {
+    max: 10000,
+    min: 0,
+    acquire: 30000,
+    idle: 10000
+  }
+});
+
+sequelize
+  .authenticate()
+  .then(() => {
+    console.log(process.env.DB_Name)
+    console.log('Connection has been established successfully.');
+  })
+  .catch(err => {
+    console.error('Unable to connect to the database:', err);
+  });
+  
 const beamsClient = new PushNotifications({
   instanceId: process.env.INSTANCE_ID,
   secretKey: process.env.SECRET_KEY,
@@ -48,4 +70,4 @@ const upload = multer({
   limits: { fileSize: 3000000 } 
 }).single("myImage");
 
-module.exports = { app, query, transporter, beamsClient, upload };
+module.exports = { app, query, sequelize,transporter, beamsClient, upload };

@@ -4,7 +4,7 @@ const express = require("express");
 const path = require("path");
 const { sendResponse } = require("../services/service");
 const { APIError } = require('../utils/app-errors');
-const UserRepository = require("../db/repository/user-repository");
+const UserLoginRepository = require("../db/repository/user-repository");
 const { upload } = require("../db/db");
 const { createObjectCsvWriter } = require("csv-writer");
 
@@ -15,11 +15,6 @@ class UserController {
     this.initializeRoutes();
   }
 
-  initializeRoutes() {
-    this.router.post("/upload-profile-picture", upload, this.uploadProfilePicture.bind(this));
-    this.router.get("/profile", this.getProfile.bind(this));
-    this.router.get("/Qrcode", this.generateQRCode.bind(this));
-  }
 
   async uploadProfilePicture(req, res) {
     const userId = req.user.id;
