@@ -1,86 +1,40 @@
 function generateEmailContent(user) {
-  return `
-    <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login Notification</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f4;
-            color: #333;
-        }
-        .email-container {
-            max-width: 600px;
-            margin: 20px auto;
-            background: #ffffff;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            padding: 20px;
-        }
-        .email-header {
-            background: #e50914;
-            color: #ffffff;
-            padding: 20px;
-            text-align: center;
-            border-bottom: 4px solid #b81d24;
-        }
-        .email-body {
-            padding: 20px;
-            text-align: center;
-        }
-        .email-body h1 {
-            margin: 0 0 10px;
-            font-size: 24px;
-        }
-        .email-body p {
-            margin: 0 0 20px;
-            font-size: 16px;
-            line-height: 1.5;
-        }
-        .email-body a {
-            display: inline-block;
-            font-size: 16px;
-            color: #ffffff;
-            background-color: #e50914;
-            padding: 10px 20px;
-            border-radius: 4px;
-            text-decoration: none;
-        }
-        .email-footer {
-            background: #f4f4f4;
-            text-align: center;
-            padding: 10px;
-            font-size: 14px;
-            color: #888;
-        }
-    </style>
-</head>
-<body>
-    <div class="email-container">
-        <div class="email-header">
-            <h1>Login Alert</h1>
-        </div>
-        <div class="email-body">
-            <h1>We Noticed a Login</h1>
-            <p>Hello, ${user.name}</p>
-            <p>We detected a login to your account from a new device or browser. If this was you, no action is required. If you did not log in, please secure your account immediately.</p>
-            <p>If you have any concerns or need assistance, please contact our support team.</p>
-            <a href="https://support.google.com/contacts/?hl=en#topic=9160153">Contact Support</a>
-        </div>
-        <div class="email-footer">
-            <p>&copy; 2024 Your Company. All rights reserved.</p>
-        </div>
-    </div>
-</body>
-</html>
-
-  `;
-}
-
-module.exports = { generateEmailContent };
+    return `
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Login Notification</title>
+  </head>
+  <body style="font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; color: #333;">
+      <div style="max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); padding: 20px;">
+          <div style="background: #e50914; color: #ffffff; padding: 20px; text-align: center; border-bottom: 4px solid #b81d24;">
+              <h1 style="margin: 0; font-size: 24px;">Your Account</h1>
+          </div>
+          <div style="padding: 20px; text-align: left;">
+              <p style="font-size: 18px; font-weight: bold; margin: 0 0 10px;">Hi ${user.name},</p>
+              <p style="margin: 0 0 20px; font-size: 16px; line-height: 1.5;">
+                  A new device signed in to your Omdb account, <a href="mailto:${user.email}" style="color: #e50914; text-decoration: none;">${user.email}</a>.
+              </p>
+              <div style="background-color: #f5f5f5; padding: 15px; border: 1px solid #dddddd; margin-top: 20px;">
+                  <h2 style="font-size: 18px; margin: 0 0 10px 0;">The Details</h2>
+                  <p style="font-size: 16px; margin: 5px 0;"><strong>Device:</strong> Web browser</p>
+                  <p style="font-size: 16px; margin: 5px 0;"><strong>Location:</strong> ${user.geo.addressRegion}, ${user.geo.addressCountry}<br><span style="color: #888888;">(This location may not be exact.)</span></p>
+                  <p style="font-size: 16px; margin: 5px 0;"><strong>Date:</strong> ${user.date}, ${user.geo.timeZone}</p>
+              </div>
+              <p style="margin-top: 20px; font-size: 16px;">If this was you or someone in your household, enjoy watching! Have you seen this one? <a href="http://localhost:3000" style="color: #e50914; text-decoration: none;">Fast X</a>.</p>
+              <p style="font-size: 16px; margin-top: 20px;">If it was someone else, please remember that we only allow the people in your household to use your account.</p>
+              <p style="font-size: 16px;">If you don’t know who it was, we recommend that you <a href="http://localhost:3000/password-reset" style="color: #e50914; text-decoration: none;">change your password</a> immediately to keep your account secure.</p>
+          </div>
+          <div style="background: #f4f4f4; text-align: center; padding: 10px; font-size: 14px; color: #888;">
+              <p style="margin: 0;">&copy; 2024 Omdb. All rights reserved.</p>
+          </div>
+      </div>
+  </body>
+  </html>
+    `;
+  }
+  
+  module.exports = { generateEmailContent };
+  

@@ -18,12 +18,14 @@ const Stripe = require('stripe');
 const stripes = Stripe(process.env.STRIPE_SECRET_KEY);
 const cron = require("node-cron");
 
+
 app.use(session({
   secret: 'Avdqead34@#43@#$', 
   resave: false,
   saveUninitialized: true,
   cookie: { maxAge: 30 * 60 * 1000 } ,
 }));
+
 
 cron.schedule('*/5 * * * * *', async () => {
   await checkExpiredSubscriptions();
@@ -113,7 +115,7 @@ app.use('/', authRoutes);
 app.use(authenticateUser);
 app.use('/', userRoutes); 
 app.use('/',stripe);
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5050;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

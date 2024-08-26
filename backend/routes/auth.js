@@ -5,14 +5,14 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { generateToken, comparePasswords, sendLoginEmail, publishLoginSuccessNotification, sendResponse, eventLog } = require("../services/service");
 const authenticateUser = require("../middleware/authenticateUser");
-const UserRepository = require("../db/repository/user-repository");
+const UserLoginRepository = require("../db/repository/user-repository");
 const {APIError} = require("../utils/app-errors");
 
 class AuthRouter {
   constructor() {
     this.router = express.Router();
     this.secret = process.env.SECRET_KEY || "some other secret as default";
-    this.userRepository = new UserRepository(); 
+    this.userRepository =  UserLoginRepository; 
     this.initializeRoutes();
   }
 
@@ -30,7 +30,7 @@ class AuthRouter {
     try {
       if (id) {
         await (user
-          ? this.userRepository.updateUser(req.body, token)
+          ? ""
           : this.userRepository.insertUser({ ...req.body, googleLogin: 1 }, token));
       } else {
         if (!user || !(await comparePasswords(password, user.password))) {
@@ -55,7 +55,7 @@ class AuthRouter {
         try {
           await publishLoginSuccessNotification(payload);
           await sendLoginEmail(payload);
-          await eventLog(req, payload);
+         // await eventLog(req, payload);
         } catch (error) {
           throw new APIError("Something went wrong during post-login actions.", error);
         }
