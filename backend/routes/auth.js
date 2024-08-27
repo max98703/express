@@ -2,27 +2,27 @@
 
 const express = require("express");
 const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
+//const jwt = require("jsonwebtoken");
 const { generateToken, comparePasswords, sendLoginEmail, publishLoginSuccessNotification, sendResponse, eventLog } = require("../services/service");
 const authenticateUser = require("../middleware/authenticateUser");
 const UserLoginRepository = require("../db/repository/user-repository");
 const {APIError} = require("../utils/app-errors");
-
+var { generateTokens, sendToken } = require('../utils/tokens.utils');
 class AuthRouter {
   constructor() {
     this.router = express.Router();
-    this.secret = process.env.SECRET_KEY || "some other secret as default";
+   // this.secret = process.env.SECRET_KEY || "some other secret as default";
     this.userRepository =  UserLoginRepository; 
     this.initializeRoutes();
   }
 
   initializeRoutes() {
-    this.router.post("/login", this.login.bind(this));
+    this.router.post("/login", this.login.bind(this),generateTokens, sendToken);
     this.router.post("/reset-password", authenticateUser, this.resetPassword.bind(this));
     this.router.post("/checkTokenValidity", this.checkTokenValidity.bind(this));
   }
 
-  async login(req, res) {
+  async login(req, res, next) {
     const { email, password, id, picture, googleLogin } = req.body;
     const user = id ? await this.userRepository.getUserByGoogleId(id) : await this.userRepository.getUserByEmail(email);
     const token = user?.token || generateToken();
@@ -38,7 +38,7 @@ class AuthRouter {
         }
       }
 
-      const payload = {
+      req.auth = {
         id: user?.id || id,
         name: user?.name || req.body.name,
         email,
@@ -48,20 +48,21 @@ class AuthRouter {
         phoneNumber: user?.phoneNumber || null,
         admin: user?.admin || null,
       };
+      next();
 
-      req.session.token = await jwt.sign(payload, this.secret, { expiresIn: 36000 });
+    //  req.session.token = await jwt.sign(payload, this.secret, { expiresIn: 36000 });
 
-      process.nextTick(async () => {
-        try {
-          await publishLoginSuccessNotification(payload);
-          await sendLoginEmail(payload);
-         // await eventLog(req, payload);
-        } catch (error) {
-          throw new APIError("Something went wrong during post-login actions.", error);
-        }
-      });
+      // process.nextTick(async () => {
+      //   try {
+      //     await publishLoginSuccessNotification(payload);
+      //     await sendLoginEmail(payload);
+      //    // await eventLog(req, payload);
+      //   } catch (error) {
+      //     throw new APIError("Something went wrong during post-login actions.", error);
+      //   }
+      // });
 
-      return sendResponse(res, 200, true, "Login successful and email sent", req.session.token);
+   //  return sendResponse(res, 200, true, "Login successful and email sent", req.session.token);
     } catch (error) {
       console.error("Error during login:", error);
       return sendResponse(res, 500, false, "Internal Server Error");

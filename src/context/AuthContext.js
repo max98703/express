@@ -1,16 +1,16 @@
 import React, { createContext, useState, useContext } from 'react';
 import api from '../api/api';
 import { userService } from "../Services/authentication.service";
-import { useNavigate } from 'react-router-dom';
+//import { useNavigate } from 'react-router-dom';
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
+ // const navigate = useNavigate();
   const login = async (data) => {
     try {
       const response = await api.post('/login', data);
-      if(response.data.success){ userService.setToken(response.data.user); navigate('/');}
+      if(response.data.success){ userService.setToken(response.data.user);}
     } catch (error) {
       alert(error.response.data.message);
       console.error('Login error:', error);
