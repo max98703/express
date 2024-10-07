@@ -13,7 +13,9 @@ import Detail from "./components/Details/Detail";
 import Missing from "./components/Missing/Missing";
 import Category from "./components/Category/Category";
 import Reset from "./components/PasswordReset/Reset";
+import CustomerCare from "./components/CustomerCare/CustomerCare";
 import { userService } from "./Services/authentication.service";
+import Feed from "./components/Feeds/Feed";
 import * as PusherPushNotifications from "@pusher/push-notifications-web";
 
 const PrivateRoute = ({ element }) => {
@@ -53,6 +55,8 @@ function App() {
 
   return (
     <Routes>
+       <Route path="/chat" element={<CustomerCare />} />
+      <Route path="/feed" element={<Feed />} />
       <Route path="/login" element={<Login />} />
       <Route path="/" element={<PrivateRoute element={<Home />} />} />
       <Route path="/profile" element={<PrivateRoute element={<Profile />} />} />
