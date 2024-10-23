@@ -1,7 +1,7 @@
 import os
 import time
 import json
-import datetime
+from datetime import datetime, timedelta , timezone
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
@@ -9,6 +9,8 @@ from threading import Thread
 from win10toast import ToastNotifier
 import pusher
 import jwt
+import io
+from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -103,13 +105,16 @@ class MovieApp:
         self.notifier = MovieNotifier(self.movie_data, self.pusher_client)
         self.users = self.initialize_users()
         self.active_users = {}
+        self.UPLOAD_FOLDER = '../../public/uploads'
+
         self.setup_routes()
+        os.makedirs(self.UPLOAD_FOLDER, exist_ok=True)
 
     def initialize_users(self):
         return {
-            "max": {"id": 1, "username": "max", "role": "customer", "img": "1724733931428.jpeg"},
+            "max": {"id": 1, "username": "max", "role": "customer", "img": "1724221288745.jpeg"},
             "customercare": {"id": 2, "username": "customercare", "role": "customer_care", "img": "nothing"},
-            "alina": {"id": 3, "username": "alina", "role": "customer", "img": "1724126776640.jpg"}
+            "alina": {"id": 3, "username": "alina", "role": "customer", "img": "1723709496205.jpg"}
         }
 
     def setup_routes(self):
@@ -128,7 +133,8 @@ class MovieApp:
             if user:
                 token = jwt.encode({
                     'user_id': user['id'],
-                    'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=1)
+                    'image':user['img'],
+                    'exp': datetime.now() + timedelta(hours=1)
                 }, self.app.config['SECRET_KEY'], algorithm='HS256')
                 return jsonify({"message": "Login successful", "token": token, "role": user['role']}), 200
             return jsonify({"message": "Invalid username"}), 401
@@ -141,7 +147,7 @@ class MovieApp:
         def handle_disconnect():
             self.active_users = {user_id: sid for user_id, sid in self.active_users.items() if sid != request.sid}
             print(f"Client disconnected with session ID {request.sid}")
-            
+        
         @self.socketio.on('register_session')
         def handle_register_session(data):
             token = data.get('token')
@@ -150,26 +156,44 @@ class MovieApp:
                 decoded = jwt.decode(token, self.app.config['SECRET_KEY'], algorithms=["HS256"])
                 user_id = decoded['user_id']
                 self.active_users[user_id] = session_id
-                self.broadcast_active_users()
+                self.broadcast_active_users() 
             except jwt.ExpiredSignatureError:
                 emit('error', {'message': 'Token expired'})
             except jwt.InvalidTokenError:
                 emit('error', {'message': 'Invalid token'})
-                
-        def broadcast_active_users(self):
-            users_list = [
-                {'id': user_id, 'username': details['username'], 'img': details['img']}
-                for user_id, session_id in self.active_users.items()
-                for username, details in self.users.items() if details['id'] == user_id
-            ]
-            self.socketio.emit('update_active_users', users_list)
+
 
         @self.socketio.on('send_message')
         def handle_message(data):
             token = data.get('token')
             message = data.get('message')
             target_id = int(data.get('target_id'))
+            files = data.get('files', [])  # List of file data and original names
+            file_urls = []
+            current_time = datetime.now().strftime('%Y-%m-%d %I:%M %p')
 
+            # Handle file uploads
+            if files:
+                for file in files:
+                    file_name = secure_filename(file['name'])  # Make filename safe
+                    file_data = file['data']  # Byte-like data
+
+                    # Convert the byte data to a file and save it
+                    file_buffer = io.BytesIO(bytearray(file_data))
+
+                    # Define the full path to save the file
+                    file_path = os.path.join(self.UPLOAD_FOLDER, file_name)
+
+                    # Save the file to the specified folder
+                    with open(file_path, 'wb') as f:
+                        f.write(file_buffer.getbuffer())
+
+                    # Store the file path for future reference
+                    file_urls.append({
+                        'name': file_name
+                    })
+                    
+            # Verify JWT token
             try:
                 decoded = jwt.decode(token, self.app.config['SECRET_KEY'], algorithms=["HS256"])
                 sender_id = decoded['user_id']
@@ -179,12 +203,23 @@ class MovieApp:
             except jwt.InvalidTokenError:
                 emit('error', {'message': 'Invalid token'}, room=request.sid)
                 return
-            
+
+            # Send the message and file URLs to the target user
             target_sid = self.active_users.get(target_id)
             if target_sid:
-                emit('receive_message', {'message': message, 'from': sender_id}, room=target_sid)
+                emit('receive_message', {'message': message, 'files': file_urls, 'from': sender_id, 'time':current_time}, room=target_sid)
             else:
                 emit('error', {'message': 'User not active'}, room=request.sid)
+
+
+
+    def broadcast_active_users(self): 
+        users_list = [
+            {'id': user_id, 'username': details['username'], 'img': details['img']}
+            for user_id, session_id in self.active_users.items()
+            for username, details in self.users.items() if details['id'] == user_id
+        ]
+        self.socketio.emit('update_active_users', users_list)
 
     def start_file_watcher(self):
         file_watcher = Thread(target=self.notifier.watch_file, args=('movies.json', 5)) 

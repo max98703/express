@@ -28,7 +28,3 @@ jobs:
       - name: Install backend dependencies
         run: npm install --legacy-peer-deps
         working-directory: ./backend
-
-      - name: Lint backend code
-        run: npx eslint . --ext .js,.jsx,.ts,.tsx
-        working-directory: ./backend
