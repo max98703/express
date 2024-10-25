@@ -210,9 +210,42 @@ class MovieApp:
                 emit('receive_message', {'message': message, 'files': file_urls, 'from': sender_id, 'time':current_time}, room=target_sid)
             else:
                 emit('error', {'message': 'User not active'}, room=request.sid)
+        
+        @self.socketio.on('call_user')
+        def handle_call_user(data):
+            callee_id = data['calleeId']
+            sender_id = data['sender_id']
+            target_sid = self.active_users.get(callee_id)
+            # Send the offer to the specific callee
+            if target_sid:
+                emit('incoming_call', {'id': callee_id, 'from': sender_id}, room=target_sid)
 
+        @self.socketio.on('accept_call')
+        def handle_accept_call(data):
+            caller_id = data['callerId']
+            target_sid = self.active_users.get(caller_id)
+            # Send the offer to the specific callee
+            if target_sid:
+             emit('call_accepted', room=target_sid)
 
-
+        # Handle call decline
+        @self.socketio.on('decline_call')
+        def handle_decline_call(data):
+            caller_id = data['callerId']
+            target_sid = self.active_users.get(caller_id)
+            # Send the offer to the specific callee
+            if target_sid:
+             emit('call_declined', room=target_sid)
+            
+        @self.socketio.on('ice_candidate')
+        def handle_ice_candidate(data):
+            target_id = data['calleeId']
+            candidate = data['candidate']
+            target_sid = self.active_users.get(target_id)
+            # Send the ICE candidate to the target user
+            if target_sid:
+                emit('ice_candidate', {'candidate': candidate}, room=target_sid)
+                
     def broadcast_active_users(self): 
         users_list = [
             {'id': user_id, 'username': details['username'], 'img': details['img']}
