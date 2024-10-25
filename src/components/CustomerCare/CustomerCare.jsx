@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import socket from "./socket"; // Import your configured Socket.IO instance
+import Videocall from "./Videocall";
+import { userService } from "../../Services/authentication.service";
 import { v4 as uuidv4 } from "uuid";
 const Chat = () => {
   const [messages, setMessages] = useState([]);
@@ -10,10 +12,12 @@ const Chat = () => {
   const [activeUsers, setActiveUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [files, setFiles] = useState([]);
-  
+  const [data,setUser] = useState([]);
   useEffect(() => {
-    const storedToken = localStorage.getItem("token");
-  
+    const storedToken = localStorage.getItem("id_token");
+    const data = userService.getUserData();
+    setUser(data);
+
     if (storedToken) {
       setToken(storedToken);
       setIsLoggedIn(true);
@@ -51,7 +55,7 @@ const Chat = () => {
       if (response.ok) {
         setIsLoggedIn(true);
         setToken(result.token);
-        localStorage.setItem("token", result.token);
+        localStorage.setItem("id_token", result.token);
         socket.emit("register_session", { token: result.token });
       } else {
         console.error(result.message);
@@ -190,10 +194,11 @@ const Chat = () => {
             backgroundRepeat: 'no-repeat', // Prevents the image from repeating
           }}>
             {selectedUser && (
-              <div className="h-20 p-2 bg-gray-400 text-white flex items-center"
+              <div className="h-20 p-2 bg-gray-400 text-white flex items-center justify-between"
               style={{
-                marginTop:'-10px'
+                marginTop: '-10px'
               }}>
+              <div className="flex items-center">
                 <div className="w-12 h-12 bg-gray-400 rounded-full mr-3">
                   <img
                     className="w-12 h-12 rounded-full"
@@ -205,6 +210,11 @@ const Chat = () => {
                   Chatting with {selectedUser.username}
                 </span> */}
               </div>
+              <div className="font-bold">
+                <Videocall user={selectedUser} data={data}/>
+              </div>
+            </div>
+            
             )}
 
             <div className="flex-1 p-4 overflow-y-auto">
