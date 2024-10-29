@@ -17,7 +17,7 @@ const bodyParser = require('body-parser');
 const Stripe = require('stripe');
 const stripes = Stripe(process.env.STRIPE_SECRET_KEY);
 const cron = require("node-cron");
-
+const { upload } = require("../backend/db/db");
 
 app.use(session({
   secret: 'Avdqead34@#43@#$', 
@@ -65,6 +65,13 @@ app.post('/webhook', bodyParser.raw({ type: 'application/json' }), async(req, re
   res.json({ received: true });
 });
 
+app.post('/uploada', upload, (req, res) => {
+  console.log('Uploaded file:', req.file);
+  if (req.file) {
+    return res.status(200).send({ message: 'Image saved successfully', filename: req.file.filename });
+  }
+  return res.status(400).send('Image upload failed.');
+});
 // app.post("/pusher-webhook", (req, res) => {
 //   const signature = req.get("x-pusher-signature");
 //   console.log(req);
@@ -115,7 +122,7 @@ app.use('/', authRoutes);
 app.use(authenticateUser);
 app.use('/', userRoutes); 
 app.use('/',stripe);
-const PORT = process.env.PORT || 5050;
+const PORT = 5050;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

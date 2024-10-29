@@ -80,7 +80,7 @@ const Chat = () => {
   
           if (filesToSend.length === files.length) {
             socket.emit("send_message", {
-              message: message || "No message",
+              message: message,
               target_id: selectedUser.id,
               token,
               files: filesToSend,
@@ -98,7 +98,7 @@ const Chat = () => {
         files: [],
       });
     }
-    setMessages((prevMessages) => [...prevMessages, { message, from: "me" }]);
+    setMessages((prevMessages) => [...prevMessages, { message,files, from: "me" }]);
     setMessage("");
   };
   
@@ -233,7 +233,7 @@ const Chat = () => {
                       <div
                         key={index}
                         className={`mb-4 ${
-                          msg.from === "me" ? "text-right" : "text-left"
+                          msg.from === "me" ? "text-right " : "text-left"
                         }`}
                       >
                         <span
@@ -242,7 +242,7 @@ const Chat = () => {
                           {msg.message}
 
                           {msg.files && msg.files.length > 0 && (
-                            <div className="mt-2 ">
+                            <div className="mt-2 " >
                               {images.length > 1 ? (
                                 <div
                                   className="relative bg-white dark:bg-gray-800 p-2 w-52 rounded-lg shadow-md border dark:border-gray-700 cursor-pointer"
