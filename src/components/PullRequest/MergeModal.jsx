@@ -1,7 +1,10 @@
-import React from "react";
+import React , {useContext} from "react";
 import api from "../../api/api";
+import { AppContext } from "../../context/AppContext";
 
-const MergeModal = ({ pr, onClose }) => {
+const MergeModal = ({ pr, onClose , fetchPullRequests }) => {
+const { showAlert } = useContext(AppContext);
+
   const handleMerge = async (prNumber) => {
     try {
         const payload = {
@@ -13,15 +16,14 @@ const MergeModal = ({ pr, onClose }) => {
               'Content-Type': 'application/json', // Ensure content type is set to JSON
             },
           });
-      const { status, message } = response.data; // Destructure status and message from response.data
-
-      // Check if the status is 200
-      if (status === 200) {
-        console.log(message); // Log the message if the merge was successful
+      const { message } = response.data; // Destructure status and message from response.data
+      if (message) {
+        fetchPullRequests();
+        showAlert(message, "success");
       }
     } catch (err) {
       console.error("Error merging pull request:", err.message);
-      // Update error message for clarity
+      showAlert(err.message, "error");
     }
     
     onClose(); // Close the modal or perform any other closing logic
