@@ -10,6 +10,7 @@ import Payment from "./components/Payment/Payment";
 import Paymentproccess from "./components/Payment/Paymentproccess";
 import SearchMovie from "./components/Search/SearchMovie";
 import Detail from "./components/Details/Detail";
+import Pr from "./components/PullRequest/Pr";
 import Missing from "./components/Missing/Missing";
 import Category from "./components/Category/Category";
 import Reset from "./components/PasswordReset/Reset";
@@ -58,6 +59,7 @@ function App() {
        <Route path="/chat" element={<CustomerCare />} />
       <Route path="/feed" element={<Feed />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/pr" element={<Pr />} />
       <Route path="/" element={<PrivateRoute element={<Home />} />} />
       <Route path="/profile" element={<PrivateRoute element={<Profile />} />} />
       <Route path="/payment" element={<PrivateRoute element={<Payment />} />} />
