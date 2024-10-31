@@ -197,7 +197,7 @@ app.use(cors({
 app.get('/pull-requests', async (req, res) => {
   const owner = "max98703";
   const repo = "express";
-  const GITHUB_TOKEN= "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";
+  const GITHUB_TOKEN= "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";
   try {
     const response = await axios.get(`https://api.github.com/repos/${owner}/${repo}/pulls`, {
       headers: {
@@ -219,7 +219,7 @@ app.put('/merge', async (req, res) => {
   const repo = "express";
   const { pr_number } = req.body; // Extract the pull request number from the request body
 
-  const GITHUB_TOKEN = "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";
+  const GITHUB_TOKEN = "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";
 
   try {
     // Make the PUT request to the GitHub API to merge the pull request
