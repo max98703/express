@@ -1,5 +1,5 @@
-
-      Welcome to the Movie App! This application provides a seamless platform for users to explore, discover, and manage their favorite movies. Built with a modern tech stack, this app leverages React for the frontend, Express for the backend, and Python for real-time features.
+   
+      Welcome to the Movie Apps! This application provides a seamless platform for users to explore, discover, and manage their favorite movies. Built with a modern tech stack, this app leverages React for the frontend, Express for the backend, and Python for real-time features.
   
       Tech Stack
         Frontend: React.js
