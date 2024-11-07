@@ -9,6 +9,7 @@ const credentials = require('./middleware/credentials');
 const authRoutes = require('./routes/auth');
 const session = require('express-session');
 const userRoutes = require('./routes/users');
+const pullrequest = require('./routes/pr');
 const stripe = require('./routes/stripe');
 const authenticateUser = require('./middleware/authenticateUser');
 const { sendEmailWithReceipt} = require('./services/service');
@@ -18,7 +19,6 @@ const Stripe = require('stripe');
 const crypto = require('crypto');
 const stripes = Stripe(process.env.STRIPE_SECRET_KEY);
 const cron = require("node-cron");
-const axios = require('axios');
 const { upload } = require("../backend/db/db");
 
 app.use(session({
@@ -114,30 +114,38 @@ app.use(logger);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+const webhookResponses = []; // Array to store webhook responses
 
-// Webhook endpoint
+
 app.post('/feed/webhook', (req, res) => {
   const signature = req.headers['x-hub-signature']; // GitHub's SHA-256 HMAC signature
-  const secret="Zm3xN7sjkL1hZ0qJw3eD6Yb9Xp2P5lA8";
+  const secret = "Zm3xN7sjkL1hZ0qJw3eD6Yb9Xp2P5lA8";
   const payload = req.body;
+
+  console.log('Received Payload:', payload);
+
   // Verify signature
   const isVerified = verifySignature(payload, signature, secret);
   if (isVerified) {
     try {
-      const data = req.body; // The payload from GitHub
+      const data = req.body;
       let response = {};
 
       // Handle pull request or issue data
-      const pullRequest = data_get(data, 'pull_request') || data_get(data, 'repository');
-      const htmlUrl = data_get(pullRequest, 'html_url')|| null;
-      const body = `${data_get(data, 'comment.body') || data_get(pullRequest, 'body') || null} `;
+      const pullRequest = data_get(data, 'pull_request');
+      const htmlUrl = data_get(pullRequest, 'html_url') || null;
+      const body = `${data_get(data, 'comment.body') || data_get(pullRequest, 'body') || null}`;
+      
+      // Construct response object
       response['pull_request_id'] = pullRequest['id'];
-      response['action'] =  data_get(data, 'action') || 'merged';
+      response['action'] = data_get(data, 'action');
       response['pull_request_url'] = htmlUrl;
+      response['created_at'] = pullRequest['created_at'];
       response['pull_request_title'] = data_get(pullRequest, 'title') || null;
-      response['pull_request_sender_username'] = data_get(data, 'comment.user.login') || data_get(pullRequest, 'user.login') || null;
+      response['pull_request_sender_username'] =  data_get(pullRequest, 'user.login') || null;
+      response['image'] =  data_get(pullRequest, 'user.avatar_url') || null;
       response['pull_request_sender_url'] = data_get(pullRequest, 'user.html_url') || null;
-      response['pull_request_comment'] = body; 
+      response['pull_request_comment'] = body;
       response['repository_full_name'] = data_get(pullRequest, 'merge_commit_sha') || null;
 
       const repository = data_get(data, 'repository');
@@ -152,15 +160,29 @@ app.post('/feed/webhook', (req, res) => {
         response['sender_url'] = data_get(sender, 'html_url');
       }
 
-      console.log(response);
+      // Check if the pull request ID already exists in the responses
+      const exists = webhookResponses.some(item => item.pull_request_id === response.pull_request_id);
+      if (!exists) {
+        // Store the response in the array if it doesn't exist
+        webhookResponses.push(response);
+        console.log('Webhook Responses:', webhookResponses);
+      } else {
+        console.log(`Pull request with ID ${response.pull_request_id} already exists.`);
+      }
 
       res.status(200).json({ message: 'Webhook received and verified' });
     } catch (error) {
       console.error(error);
       res.status(500).json({ message: 'Internal server error', error: error.message });
     }
+  } else {
+    res.status(400).json({ message: 'Signature verification failed' });
   }
 });
+
+
+
+
 
 // Signature verification function
 function verifySignature(payload, signatureHeader, secret) {
@@ -194,73 +216,10 @@ app.use(cors({
   credentials: true  
 }));
 
-app.get('/pull-requests', async (req, res) => {
-  const owner = "max98703";
-  const repo = "express";
-  const GITHUB_TOKEN= "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";
-  try {
-    const response = await axios.get(`https://api.github.com/repos/${owner}/${repo}/pulls`, {
-      headers: {
-        'Accept': 'application/vnd.github+json',
-        'Authorization': `Bearer ${GITHUB_TOKEN}`,
-        'X-GitHub-Api-Version': '2022-11-28'
-      }
-    });
-    
-    console.log(response.data);
-    res.status(200).json(response.data);
-  } catch (error) {
-    console.error('Error fetching pull requests:', error.message);
-    res.status(500).json({ error: 'Error fetching pull requests' });
-  }
-});
-app.put('/merge', async (req, res) => {
-  const owner = "max98703";
-  const repo = "express";
-  const { pr_number } = req.body; // Extract the pull request number from the request body
-
-  const GITHUB_TOKEN = "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";
-
-  try {
-    // Make the PUT request to the GitHub API to merge the pull request
-    const response = await axios.put(
-      `https://api.github.com/repos/${owner}/${repo}/pulls/${pr_number}/merge`, 
-      {
-        commit_title: `Merged from express by ${pr_number}`, 
-        merge_method: 'merge', // Correctly formatted
-      }, 
-      {
-        headers: {
-          'Accept': 'application/vnd.github+json',
-          'Authorization': `Bearer ${GITHUB_TOKEN}`,
-          'X-GitHub-Api-Version': '2022-11-28'
-        }
-      }
-    );
-
-    console.log(response);
-    res.status(200).json({
-      message: "Pull request merged successfully",
-      data: response.data,
-    });
-  } catch (error) {
-    console.error('Error fetching pull requests:', error.message);
-    // Check if the error response from GitHub contains a status code
-    if (error.response) {
-      return res.status(error.response.status).json({ error: error.response.data.message });
-    }
-    res.status(500).json({ error: 'Error fetching pull requests' });
-  }
-});
-
-
-app.use(credentials);
-//CORS middleware
-
-
-// Mount auth and user routes
 app.use('/', authRoutes);  
-app.use(authenticateUser);
+app.use(authenticateUser)
+app.use('/', pullrequest(webhookResponses)); 
+app.use(credentials);
 app.use('/', userRoutes); 
 app.use('/',stripe);
 const PORT = 5050;
