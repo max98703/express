@@ -16,8 +16,16 @@
   width: 100%;
   z-index: 1000; /* Adjust z-index as needed */
 }
+/* Hide scrollbar for Chrome, Safari and Opera */
+.example::-webkit-scrollbar {
+  display: none;
+}
 
-
+/* Hide scrollbar for IE, Edge and Firefox */
+.example {
+-ms-overflow-style: none;  /* IE and Edge */
+scrollbar-width: none;  /* Firefox */
+}
 /* CSS for responsive select field */
 @media screen and (max-width: 767px) {
   .form-select {
@@ -105,7 +113,7 @@
 
 body {
   font-family: "montserrat", sans-serif;
-  background: linear-gradient(to right, #131617,#000428);
+  /* background: linear-gradient(to right, #131617,#000428); */
   position: relative;
 
 }
