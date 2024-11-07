@@ -112,9 +112,9 @@ class MovieApp:
 
     def initialize_users(self):
         return {
-            "max": {"id": 1, "username": "max", "role": "customer", "img": "1724221288745.jpeg"},
+            "max": {"id": 1, "username": "max", "role": "superadmin", "img": "1724221288745.jpeg"},
             "customercare": {"id": 2, "username": "customercare", "role": "customer_care", "img": "nothing"},
-            "alina": {"id": 3, "username": "alina", "role": "customer", "img": "1723709496205.jpg"}
+            "alina": {"id": 3, "username": "alina", "role": "user", "img": "1723709496205.jpg"}
         }
 
     def setup_routes(self):
@@ -134,6 +134,7 @@ class MovieApp:
                 token = jwt.encode({
                     'user_id': user['id'],
                     'image':user['img'],
+                    'role':user['role'],
                     'exp': datetime.now() + timedelta(hours=1)
                 }, self.app.config['SECRET_KEY'], algorithm='HS256')
                 return jsonify({"message": "Login successful", "token": token, "role": user['role']}), 200
