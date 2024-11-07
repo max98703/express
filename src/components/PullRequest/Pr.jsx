@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import api from "../../api/api";
 import MergeModal from "./MergeModal";
 import Spinner from "../Spinner/Spinner.jsx";
-
+import Activity from "./Activity.jsx";
 const PullRequest = () => {
   const [pullRequests, setPullRequests] = useState([]);
   const [error, setError] = useState(null);
@@ -19,7 +19,7 @@ const PullRequest = () => {
       }
     } catch (err) {
       console.error("Error fetching pull requests:", err.message);
-      setError("Could not load pull requests.");
+      setError(err.message);
     } finally {
       setIsLoading(false);
     }
@@ -40,7 +40,9 @@ const PullRequest = () => {
   };
 
   return (
-    <div className="bg-white min-h-screen p-6">
+    <Activity>
+  <div className="overflow-x-auto example mt-4">
+  <div className=" p-6 mt-4">
       <header>
         <div class="flex justify-between gap-5  lg:items-center">
           <div class="flex flex-col">
@@ -54,7 +56,7 @@ const PullRequest = () => {
                 <li class="breadcrumb-item">
                   <a
                     class="flex items-center cursor-pointer text-gray-500  dark:text-gray-300 text-[12px] gap-1 font-bold hover:text-primary-800 dark:hover:text-gray-400"
-                    href="{{ url('/home') }}"
+                    href="{{ url('/feeds') }}"
                   >
                     <svg
                       class="w-3.5 h-3.5"
@@ -90,11 +92,14 @@ const PullRequest = () => {
           <div></div>
         </div>
       </header>
-      {error && <p className="text-red-500">{error}</p>}
+      {error && <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md text-yellow-700">
+              <p className="font-semibold">{error}</p>
+              
+            </div>}
       {!isLoading ? (
         <>
           {pullRequests.length > 0 ? (
-            <div className="overflow-x-auto bg-white border rounded-lg shadow-lg mt-4 dark:bg-gray-800 dark:border-gray-700">
+            <div className="overflow-x-auto bg-white  border rounded-lg shadow-md mt-4 dark:bg-gray-800 dark:border-gray-700">
               <table className="min-w-full table-auto text-left">
                 <thead className="bg-gray-100 dark:bg-gray-700">
                   <tr>
@@ -176,11 +181,7 @@ const PullRequest = () => {
           )}
         </>
       ) : (
-        <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md text-yellow-700">
-          <p className="font-semibold">
             <Spinner />
-          </p>
-        </div>
       )}
       {isModalOpen && (
         <MergeModal
@@ -190,6 +191,8 @@ const PullRequest = () => {
         />
       )}
     </div>
+    </div>
+    </Activity>
   );
 };
 
