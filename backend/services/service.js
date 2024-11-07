@@ -141,6 +141,12 @@ async function run(ip) {
   }
 }
 
+async function isSuperAdmin(user){
+  if(user.role == 'superadmin'){
+    return true;
+  }
+  return false;
+}
 module.exports = {
   generateToken,
   sendLoginEmail,
@@ -150,4 +156,5 @@ module.exports = {
   sendResponse,
   sendEmailWithReceipt,
   eventLog,
+  isSuperAdmin,
 };
