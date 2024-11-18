@@ -2,13 +2,14 @@ import React, { useContext } from "react";
 import api from "../../api/api";
 import { AppContext } from "../../context/AppContext";
 
-const MergeModal = ({ pr, onClose, fetchPullRequests }) => {
+const MergeModal = ({ pr, onClose, fetchPullRequests,selectedRepo }) => {
   const { showAlert } = useContext(AppContext);
 
   const handleMerge = async (prNumber) => {
     try {
       const payload = {
         pr_number: prNumber, // Only include the PR number in the payload
+        selectedRepo: selectedRepo
       };
 
       const response = await api.put(`/merge`, JSON.stringify(payload), {
@@ -23,7 +24,7 @@ const MergeModal = ({ pr, onClose, fetchPullRequests }) => {
         showAlert(message, "success");
       }
     } catch (err) {
-      showAlert(err.response.data.message, "error");
+      showAlert(err.response.data.message ?  err.response.data.message : err.response.data.error, "error");
     }
 
     onClose(); // Close the modal or perform any other closing logic

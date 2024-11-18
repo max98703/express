@@ -37,4 +37,4 @@ class UserLoginRepository extends BaseRepository {
 
 }
 
-module.exports = new UserLoginRepository();
+module.exports =  UserLoginRepository;

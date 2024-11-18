@@ -23,9 +23,9 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchPerformanceData = async () => {
+  const fetchPerformanceData = async (selectedRepo) => {
     try {
-      const response = await api.get('/collaborator-performance');
+      const response = await api.get(`/collaborator-performance/${selectedRepo}`);
       setPerformanceData(response.data);
     } catch (err) {
       setError(err.message);
@@ -36,15 +36,26 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    fetchPerformanceData(); // Fetch data when component mounts
+    fetchPerformanceData(selectedRepo); // Fetch data when component mounts
   }, []);
 
+  const handleFilter = async () => {
+    console.log(selectedRepo);
+    if (selectedRepo) {
+      fetchPerformanceData(selectedRepo)
+    }
+  }
   // Prepare data for charts
   const usernames = performanceData.map(user => user.username);
   const prsCreated = performanceData.map(user => user.prsCreated);
   const prsMerged = performanceData.map(user => user.prsMerged);
   const prsReviewed = performanceData.map(user => user.prsReviewed);
   const commentsMade = performanceData.map(user => user.commentsMade);
+  const [repositories, setRepositories] = useState([
+    { name: 'nodes-project' },
+    { name: 'python-php' }
+  ]);
+  const [selectedRepo, setSelectedRepo] = useState('nodes-project');
 
   // Chart data
   const barChartData = {
@@ -96,6 +107,29 @@ const Dashboard = () => {
                     Dashboard
                   </div>
                 </div>
+              </div>
+              <div>
+              <form className="max-w-sm mx-auto flex flex-1 gap-4 pr-6">
+        <select
+          id="repositories"
+          value={selectedRepo}
+          onChange={(e) => setSelectedRepo(e.target.value)}
+          className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+        >
+          {repositories.map((repo) => (
+            <option key={repo.name} value={repo.name}>{repo.name}</option>
+          ))}
+        </select>
+        <div>
+          <button
+            type="button"
+            onClick={handleFilter}
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          >
+            Filter
+          </button>
+        </div>
+      </form>
               </div>
             </div>
           </header>

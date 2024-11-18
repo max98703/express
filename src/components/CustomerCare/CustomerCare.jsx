@@ -140,27 +140,8 @@ const Chat = () => {
   
   return (
     <Activity>
-    <div className="flex bg-gray-400 min-h-full mt-6 ">
-      {!isLoggedIn ? (
-        <div className="flex items-center justify-center w-full h-full">
-          <div className="bg-white p-6 rounded-lg shadow-lg">
-            <input
-              type="text"
-              placeholder="Enter username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="border p-2 rounded mb-4 w-full"
-            />
-            <button
-              onClick={handleLogin}
-              className="bg-blue-500 text-white p-2 rounded w-full"
-            >
-              Login
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="flex flex-1 pt-14 min-h-full">
+    <div className="flex bg-gray-400 min-h-full  ">
+        <div className="flex flex-1  min-h-full">
           <aside className="w-1/4 bg-gray-300 p-4 shadow-md ">
             <h2 className="text-xl font-bold mb-4">Active Users</h2>
             <ul>
@@ -381,7 +362,6 @@ const Chat = () => {
             )}
           </main>
         </div>
-      )}
     </div>
     </Activity>
   );

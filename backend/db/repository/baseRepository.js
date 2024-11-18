@@ -7,6 +7,13 @@ class BaseRepository {
         return this.model;  
     }
 
+    async bulkCreate(data) {
+        try {
+            return await (await this.getModel()).bulkCreate(data);
+        } catch (error) {
+            throw error;
+        }
+    }
     async create(data) {
         try {
             return await (await this.getModel()).create(data);
