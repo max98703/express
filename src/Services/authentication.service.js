@@ -28,7 +28,7 @@ function getToken() {
 function logout() {
     console.log("logout");
     localStorage.removeItem('id_token');
-    window.location.href =`/`;
+    window.location.reload();
 }
 
 function setUserData(user) {

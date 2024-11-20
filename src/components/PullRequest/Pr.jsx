@@ -3,20 +3,30 @@ import api from "../../api/api";
 import MergeModal from "./MergeModal";
 import Spinner from "../Spinner/Spinner.jsx";
 import Activity from "./Activity.jsx";
+import SmartTable from '../DataTable/SmartTable.jsx';
+
 const PullRequest = () => {
   const [pullRequests, setPullRequests] = useState([]);
   const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPR, setSelectedPR] = useState(null);
-  const [isLoading, setIsLoading] = useState(true); // Corrected use of isLoading
+  const [isLoading, setIsLoading] = useState(true);
+  const [repositories, setRepositories] = useState([
+    { name: 'nodes-project' },
+    { name: 'python-php' }
+  ]);
+  const [selectedRepo, setSelectedRepo] = useState('nodes-project');
 
-  const fetchPullRequests = async () => {
+  const fetchPullRequests = async (repo) => {
     setIsLoading(true);
     try {
-      const response = await api.get("/pull-requests");
-      if (response) {
-        setPullRequests(response.data);
-      }
+      const response = await api.get(`/pull-requests/${repo}`);
+      const indexedData = response.data.map((pr, idx) => ({
+        ...pr,
+        index: idx + 1, // Add index starting from 1
+      }));
+      console.log(indexedData);
+      setPullRequests(indexedData);
     } catch (err) {
       console.error("Error fetching pull requests:", err.message);
       setError(err.message);
@@ -26,7 +36,7 @@ const PullRequest = () => {
   };
 
   useEffect(() => {
-    fetchPullRequests(); // Call fetchPullRequests on component mount
+    fetchPullRequests(selectedRepo);
   }, []);
 
   const openModal = (pr) => {
@@ -39,19 +49,37 @@ const PullRequest = () => {
     setSelectedPR(null);
   };
 
+  const handleFilter = async () => {
+    if (selectedRepo) {
+      fetchPullRequests(selectedRepo);
+    }
+  };
+
+  const columns = [
+    { key: 'index', label: 'SN' },
+    { key: 'title', label: 'Title' },
+    { key: 'html_url', label: 'URL', isLink: true },
+    { key: 'state', label: 'State' },
+    { key: 'body', label: 'Comment' },
+    { key: 'branch', label: 'Branch', render: (pr) => pr.head.label },
+    { key: 'action', label: 'Action', render: (pr) => (
+        <button className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded mr-2 transition-all duration-300" onClick={() => openModal(pr)}>
+            Merge
+        </button>
+    )}
+  ];
+
   return (
     <Activity>
-  <div className="overflow-x-auto example mt-4">
-  <div className=" p-6 mt-4">
-      <header>
-        <div class="flex justify-between gap-5  lg:items-center">
-          <div class="flex flex-col">
-            <div class="flex items-center gap-4">
-              <div class="mb-1 text-2xl font-bold text-primary-500 dark:text-gray-300">
-                Pull Request
-              </div>
-            </div>
-            <nav>
+      <div className="overflow-x-auto example mt-4 mb-12">
+      <div className="p-6 mt-4">
+        <header className="flex justify-between gap-5 lg:items-center">
+        <div className="flex items-center gap-4">
+        <div className="flex flex-col">
+                  <div className="mb-1 text-2xl font-bold text-primary-500 dark:text-gray-300">
+                   Tasks
+                  </div>
+   <nav>
               <ol class="flex items-center gap-x-1.5 p-0 m-0">
                 <li class="breadcrumb-item">
                   <a
@@ -87,111 +115,47 @@ const PullRequest = () => {
                   </svg>
                 </li>
               </ol>
-            </nav>
-          </div>
-          <div></div>
+            </nav>                  
+                </div>
+                
+                
+                </div>
+                
+          <form className="flex gap-4">
+            <select
+              id="repositories"
+              value={selectedRepo}
+              onChange={(e) => setSelectedRepo(e.target.value)}
+              className="bg-gray-50 border border-gray-300 rounded-lg p-2"
+            >
+              {repositories.map((repo) => (
+                <option key={repo.name} value={repo.name}>{repo.name}</option>
+              ))}
+            </select>
+            <button type="button" onClick={handleFilter} className="bg-blue-500 text-white px-4 py-2 rounded">
+              Filter
+            </button>
+          </form>
+        </header>
+        {error && <p className="text-yellow-700">{error}</p>}
+        {isLoading ? (
+          <Spinner />
+        ) : (
+          <SmartTable
+            data={pullRequests}
+            columns={columns}
+          />
+        )}
         </div>
-      </header>
-      {error && <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md text-yellow-700">
-              <p className="font-semibold">{error}</p>
-              
-            </div>}
-      {!isLoading ? (
-        <>
-          {pullRequests.length > 0 ? (
-            <div className="overflow-x-auto bg-white  border rounded-lg shadow-md mt-4 dark:bg-gray-800 dark:border-gray-700">
-              <table className="min-w-full table-auto text-left">
-                <thead className="bg-gray-100 dark:bg-gray-700">
-                  <tr>
-                    <th className="px-4 py-2 text-gray-600 font-medium dark:text-gray-300">
-                      SN
-                    </th>
-                    <th className="px-4 py-2 text-gray-600 font-medium dark:text-gray-300">
-                      Title
-                    </th>
-                    <th className="px-4 py-2 text-gray-600 font-medium dark:text-gray-300">
-                      URL
-                    </th>
-                    <th className="px-4 py-2 text-gray-600 font-medium dark:text-gray-300">
-                      State
-                    </th>
-                    <th className="px-4 py-2 text-gray-600 font-medium dark:text-gray-300">
-                      Comment
-                    </th>
-                    <th className="px-4 py-2 text-gray-600 font-medium dark:text-gray-300">
-                      Branch
-                    </th>
-                    <th className="px-4 py-2 text-gray-600 font-medium dark:text-gray-300">
-                      Action
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pullRequests.map((pr, index) => (
-                    <tr
-                      key={pr.id}
-                      className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300"
-                    >
-                      <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
-                        {index + 1}
-                      </td>
-                      <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
-                        {pr.title}
-                      </td>
-                      <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
-                        <a
-                          href={pr.html_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-500 hover:underline"
-                        >
-                          {pr.html_url}
-                        </a>
-                      </td>
-                      <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
-                        {pr.state}
-                      </td>
-                      <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
-                        {pr.body}
-                      </td>
-                      <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
-                        {pr.head.label}
-                      </td>
-                      <td className="px-4 py-3">
-                        <button
-                          className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded mr-2 transition-all duration-300"
-                          onClick={() => openModal(pr)}
-                        >
-                          Merge
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md text-yellow-700">
-              <p className="font-semibold">No Pull Requests Found</p>
-              <p className="mt-1">
-                It seems there are currently no pull requests. You can create a
-                new pull request to start contributing.
-              </p>
-            </div>
-          )}
-        </>
-      ) : (
-            <Spinner />
-      )}
-      {isModalOpen && (
-        <MergeModal
-          pr={selectedPR}
-          onClose={closeModal}
-          fetchPullRequests={fetchPullRequests}
-        />
-      )}
-    </div>
-    </div>
+        {isModalOpen && (
+          <MergeModal
+            pr={selectedPR}
+            onClose={closeModal}
+            fetchPullRequests={fetchPullRequests}
+            selectedRepo={selectedRepo}
+          />
+        )}
+      </div>
     </Activity>
   );
 };

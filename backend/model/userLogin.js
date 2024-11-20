@@ -33,6 +33,11 @@ const User = sequelize.define('User', {
         type: Sequelize.BOOLEAN,
         defaultValue: false,
     },
+    created_at: {
+        type: Sequelize.DATE,
+        allowNull: false,
+        defaultValue: Sequelize.NOW
+    },
 }, {
     tableName: 'users',
     timestamps: false,  // Adds 'createdAt' and 'updatedAt'

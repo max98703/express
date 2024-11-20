@@ -10,11 +10,18 @@ const { createObjectCsvWriter } = require("csv-writer");
 
 class UserController {
   constructor() {
-    this.userRepository = new UserRepository();
+    this.userRepository = new UserLoginRepository();
     this.router = express.Router();
     this.initializeRoutes();
   }
+  
 
+  initializeRoutes() {
+    this.router.post('/create-payment-intent', this.uploadProfilePicture.bind(this));
+    this.router.get('/retrieve-subscription/:paymentIntentId', this.getProfile.bind(this));
+    this.router.post('/create-payment-method', this.generateQRCode.bind(this));
+    this.router.get('/user', this.users.bind(this));
+  }
 
   async uploadProfilePicture(req, res) {
     const userId = req.user.id;
@@ -49,7 +56,16 @@ class UserController {
       throw new APIError("Error fetching user profile:", error);
     }
   }
-
+  
+  async users(req,res){
+    try{
+      const users = await this.userRepository.findAll();
+      console.log(users);
+      res.status(200).json(users);
+    }catch(error){
+      throw new APIError("Error fetching user profile:", error);
+    }
+  }
   async generateQRCode(req, res) {
     try {
       const userId = req.user.id;

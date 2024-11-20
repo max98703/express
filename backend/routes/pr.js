@@ -1,30 +1,29 @@
 /* eslint no-undef: "off" */
 const express = require("express");
 const axios = require('axios');
-const { isSuperAdmin } = require("../services/service");
-
-const GITHUB_TOKEN = "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";
+const GITHUB_TOKEN = "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";
 const OWNER = "max4542";
-const REPO = "nodes-project";
 
 class PullRequestController {
     constructor(webhookResponses) {
         this.router = express.Router();
         this.webhookResponses = webhookResponses; // Store the reference
+
         this.initializeRoutes();
     }
 
   initializeRoutes() {
     this.router.get('/webhook/responses', this.feeds.bind(this));
     this.router.put('/merge', this.merge.bind(this));
-    this.router.get('/pull-requests', this.pullRequests.bind(this));
-    this.router.get('/pr/collaborator', this.index.bind(this));
-    this.router.get('/pr/collaborator/:username', this.show.bind(this));
-    this.router.get('/collaborator-performance', this.dashboard.bind(this));
+    this.router.get('/pull-requests/:repo', this.pullRequests.bind(this));
+    this.router.get('/pr/collaborator/:repo', this.index.bind(this));
+    this.router.get('/pr/collaborators/:username/:repo', this.show.bind(this));
+    this.router.get('/collaborator-performance/:repo', this.dashboard.bind(this));
   }
 
-  async makeGitHubRequest(endpoint, method = "GET", data = null) {
-    const url = `https://api.github.com/repos/${OWNER}/${REPO}/${endpoint}`;
+
+  async makeGitHubRequest(endpoint,repo = null, method = "GET", data = null) {
+    const url = `https://api.github.com/repos/${OWNER}/${repo}/${endpoint}`;
     const headers = {
       'Accept': 'application/vnd.github+json',
       'Authorization': `Bearer ${GITHUB_TOKEN}`,
@@ -41,14 +40,13 @@ class PullRequestController {
   }
 
   async feeds(req, res) {
-    console.log('Webhook responses:', this.webhookResponses);
     res.status(200).json(this.webhookResponses);
   }
 
   async pullRequests(req, res) {
+    const { repo } = req.params;
     try {
-      const data = await this.makeGitHubRequest("pulls");
-      console.log('User:', req.user);
+      const data = await this.makeGitHubRequest("pulls", repo);
       res.status(200).json(data);
     } catch (error) {
       res.status(500).json({ error: 'Error fetching pull requests' });
@@ -56,17 +54,20 @@ class PullRequestController {
   }
 
   async merge(req, res) {
-    const { pr_number } = req.body;
-
-    if (!isSuperAdmin(req.user)) {
+    
+    const { pr_number ,selectedRepo} = req.body;
+    console.log(req.selectedRepo)
+    
+    if (req.user.role !== 'superAdmin') {
       return res.status(403).json({ message: "Only superAdmin can merge the pull request" });
     }
 
     try {
-      const data = await this.makeGitHubRequest(`pulls/${pr_number}/merge`, "PUT", {
+      const data = await this.makeGitHubRequest(`pulls/${pr_number}/merge`,selectedRepo, "PUT", {
         commit_title: `Merged from express by PR #${pr_number}`,
         merge_method: 'merge',
       });
+      console.log(data);
       res.status(200).json({ message: "Pull request merged successfully", data });
     } catch (error) {
       res.status(error.response?.status || 500).json({ error: error.response?.data?.message || 'Error merging pull request' });
@@ -74,8 +75,9 @@ class PullRequestController {
   }
 
   async index(req, res) {
+    const { repo } = req.params;
     try {
-      const data = await this.makeGitHubRequest("collaborators");
+      const data = await this.makeGitHubRequest("contributors",repo);
       res.status(200).json(data);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch collaborators" });
@@ -83,10 +85,10 @@ class PullRequestController {
   }
 
   async show(req, res) {
-    const { username } = req.params;
+    const { username,repo } = req.params;
 
     try {
-      const url = `https://api.github.com/search/issues?q=repo:${OWNER}/${REPO}+is:pr+author:${username}`;
+      const url = `https://api.github.com/search/issues?q=repo:${OWNER}/${repo}+is:pr+author:${username}`;
       const response = await axios.get(url, {
         headers: { 'Authorization': `Bearer ${GITHUB_TOKEN}` },
       });
@@ -96,12 +98,7 @@ class PullRequestController {
           let isMerged = false;
 
           if (pr.state === 'closed') {
-            try {
-              await this.makeGitHubRequest(`pulls/${pr.number}/merge`);
               isMerged = true;
-            } catch {
-              isMerged = false;
-            }
           }
 
           return {
@@ -113,7 +110,6 @@ class PullRequestController {
           };
         })
       );
-
       res.status(200).json(pullRequests);
     } catch (error) {
       res.status(500).json({ error: 'Error fetching PRs' });
@@ -121,17 +117,18 @@ class PullRequestController {
   }
 
   async dashboard(req, res) {
+    const { repo } = req.params;
     try {
-      const pulls = await this.makeGitHubRequest("pulls?state=all");
+      const pulls = await this.makeGitHubRequest("pulls?state=all",repo);
       const performanceData = {};
       const pullNumbers = pulls.map(pull => pull.number);
 
       const reviewPromises = pullNumbers.map(number =>
-        this.makeGitHubRequest(`pulls/${number}/reviews`).then(reviews => ({ number, reviews }))
+        this.makeGitHubRequest(`pulls/${number}/reviews`,repo).then(reviews => ({ number, reviews }))
       );
 
       const commentPromises = pullNumbers.map(number =>
-        this.makeGitHubRequest(`issues/${number}/comments`).then(comments => ({ number, comments }))
+        this.makeGitHubRequest(`issues/${number}/comments`,repo).then(comments => ({ number, comments }))
       );
 
       const reviewResults = await Promise.all(reviewPromises);
@@ -160,6 +157,9 @@ class PullRequestController {
       res.status(500).json({ error: "Failed to fetch performance data" });
     }
   }
+
+ 
+
 }
 
 module.exports = (webhookResponses) => new PullRequestController(webhookResponses).router;

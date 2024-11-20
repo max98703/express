@@ -73,6 +73,14 @@ scrollbar-width: none;  /* Firefox */
   justify-content: space-between;
   align-items: center;
 }
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+.animate-blink {
+  animation: blink 3s infinite;
+}
 
 .button-container .left-content,
 .button-container .right-content {

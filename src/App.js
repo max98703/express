@@ -18,9 +18,13 @@ import Dashboard from "./components/PullRequest/Dashboard";
 import Category from "./components/Category/Category";
 import Reset from "./components/PasswordReset/Reset";
 import CustomerCare from "./components/CustomerCare/CustomerCare";
+import Users from "./components/User/Users"
+import TaskPage from "./components/Task/Task";
 import { userService } from "./Services/authentication.service";
+import Taskdashboard from "./components/Task/Dashboard";
 import Feed from "./components/Feeds/Feed";
 import * as PusherPushNotifications from "@pusher/push-notifications-web";
+import Logins from "./components/PullRequest/AdminLogin";
 
 const PrivateRoute = ({ element }) => {
   return userService.loggedIn() ? (
@@ -65,9 +69,13 @@ function App() {
       <Route path="/pr/feed" element={<PrFeed />} />
       <Route path="/dashboard" element={<Dashboard/>}/>
       <Route path="/pr" element={<Pr />} />
+      <Route path="/admin" element={<Logins />} />
       <Route path="/pr/feed" element={<PrFeed />} />
       <Route path="pr/collaborator" element={<Collaborator/>}/>
+      <Route path="/task" element={<TaskPage/>}/>
+      <Route path="/users" element={<Users/>}/>
       <Route path="/pr" element={<Pr />} />
+      <Route path="/user/dashboard" element={<Taskdashboard/>} />
       <Route path="/" element={<PrivateRoute element={<Home />} />} />
       <Route path="/profile" element={<PrivateRoute element={<Profile />} />} />
       <Route path="/payment" element={<PrivateRoute element={<Payment />} />} />

@@ -135,6 +135,7 @@ class MovieApp:
                     'user_id': user['id'],
                     'image':user['img'],
                     'role':user['role'],
+                    'name':user['username'],
                     'exp': datetime.now() + timedelta(hours=1)
                 }, self.app.config['SECRET_KEY'], algorithm='HS256')
                 return jsonify({"message": "Login successful", "token": token, "role": user['role']}), 200

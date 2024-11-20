@@ -10,6 +10,7 @@ const authRoutes = require('./routes/auth');
 const session = require('express-session');
 const userRoutes = require('./routes/users');
 const pullrequest = require('./routes/pr');
+const task = require('./routes/task');
 const stripe = require('./routes/stripe');
 const authenticateUser = require('./middleware/authenticateUser');
 const { sendEmailWithReceipt} = require('./services/service');
@@ -67,7 +68,7 @@ app.post('/webhook', bodyParser.raw({ type: 'application/json' }), async(req, re
   res.json({ received: true });
 });
 
-app.post('/uploada', upload, (req, res) => {
+app.post('/uploada', upload.single("myImage"), (req, res) => {
   console.log('Uploaded file:', req.file);
   if (req.file) {
     return res.status(200).send({ message: 'Image saved successfully', filename: req.file.filename });
@@ -114,61 +115,21 @@ app.use(logger);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-const webhookResponses = []; // Array to store webhook responses
-
-
+const webhookResponses = []; // Array to store webhook responses 
+// GitHub Webhook Handler
 app.post('/feed/webhook', (req, res) => {
-  const signature = req.headers['x-hub-signature']; // GitHub's SHA-256 HMAC signature
+  const signature = req.headers['x-hub-signature'];
   const secret = "Zm3xN7sjkL1hZ0qJw3eD6Yb9Xp2P5lA8";
   const payload = req.body;
 
-  console.log('Received Payload:', payload);
-
-  // Verify signature
-  const isVerified = verifySignature(payload, signature, secret);
-  if (isVerified) {
+  if (verifySignature(payload, signature, secret)) {
     try {
       const data = req.body;
-      let response = {};
+      const response = buildResponseObject(data);
 
-      // Handle pull request or issue data
-      const pullRequest = data_get(data, 'pull_request');
-      const htmlUrl = data_get(pullRequest, 'html_url') || null;
-      const body = `${data_get(data, 'comment.body') || data_get(pullRequest, 'body') || null}`;
-      
-      // Construct response object
-      response['pull_request_id'] = pullRequest['id'];
-      response['action'] = data_get(data, 'action');
-      response['pull_request_url'] = htmlUrl;
-      response['created_at'] = pullRequest['created_at'];
-      response['pull_request_title'] = data_get(pullRequest, 'title') || null;
-      response['pull_request_sender_username'] =  data_get(pullRequest, 'user.login') || null;
-      response['image'] =  data_get(pullRequest, 'user.avatar_url') || null;
-      response['pull_request_sender_url'] = data_get(pullRequest, 'user.html_url') || null;
-      response['pull_request_comment'] = body;
-      response['repository_full_name'] = data_get(pullRequest, 'merge_commit_sha') || null;
-
-      const repository = data_get(data, 'repository');
-      if (repository) {
-        response['repository_name'] = data_get(repository, 'name');
-        response['repository_url'] = data_get(repository, 'html_url');
-      }
-
-      const sender = data_get(data, 'sender');
-      if (sender) {
-        response['sender_username'] = data_get(sender, 'login');
-        response['sender_url'] = data_get(sender, 'html_url');
-      }
-
-      // Check if the pull request ID already exists in the responses
-      const exists = webhookResponses.some(item => item.pull_request_id === response.pull_request_id);
-      if (!exists) {
-        // Store the response in the array if it doesn't exist
-        webhookResponses.push(response);
-        console.log('Webhook Responses:', webhookResponses);
-      } else {
-        console.log(`Pull request with ID ${response.pull_request_id} already exists.`);
-      }
+      // Add to the beginning of the webhook responses array
+      webhookResponses.unshift(response);
+      console.log(webhookResponses);
 
       res.status(200).json({ message: 'Webhook received and verified' });
     } catch (error) {
@@ -180,32 +141,40 @@ app.post('/feed/webhook', (req, res) => {
   }
 });
 
-
-
-
-
-// Signature verification function
+// Function to verify signature
 function verifySignature(payload, signatureHeader, secret) {
-  // Ensure payload is a string
-  const payloadString = JSON.stringify(payload);
-
-  // Separate the hash algorithm and the signature
   const [hashAlgo, signature] = signatureHeader.split('=');
-
-  // Compute the HMAC signature
-  const computedSignature = crypto
-    .createHmac(hashAlgo, secret)
-    .update(payloadString) // Use the stringified payload
+  const computedSignature = crypto.createHmac(hashAlgo, secret)
+    .update(JSON.stringify(payload))
     .digest('hex');
-
-  // Verify that computed signature matches the received signature
-  const isValid = crypto.timingSafeEqual(
-    Buffer.from(computedSignature, 'utf8'),
-    Buffer.from(signature, 'utf8')
-  );
-
-  return isValid;
+  
+  return crypto.timingSafeEqual(Buffer.from(computedSignature, 'utf8'), Buffer.from(signature, 'utf8'));
 }
+
+// Function to build response object
+function buildResponseObject(data) {
+  const pullRequest = data_get(data, 'pull_request');
+  const repository = data_get(data, 'repository');
+  const sender = data_get(data, 'sender');
+
+  return {
+    pull_request_id: pullRequest ? pullRequest.id : 'N/A',
+    action: data_get(data, 'action') || 'Merged',
+    pull_request_url: pullRequest ? data_get(pullRequest, 'html_url') : 'N/A',
+    created_at: pullRequest ? pullRequest.created_at : new Date().toISOString(),
+    pull_request_title: pullRequest ? data_get(pullRequest, 'title') : 'No title',
+    pull_request_sender_username: pullRequest ? data_get(pullRequest, 'user.login') : 'N/A',
+    image: pullRequest ? data_get(pullRequest, 'user.avatar_url') : data_get(sender, 'avatar_url'),
+    pull_request_sender_url: pullRequest ? data_get(pullRequest, 'user.html_url') : data_get(sender, 'html_url'),
+    pull_request_comment: pullRequest ? (data_get(data, 'comment.body') || data_get(pullRequest, 'body') || '') : 'No pull request data',
+    repository_full_name: repository ? data_get(repository, 'full_name') : 'N/A',
+    repository_name: repository ? data_get(repository, 'name') : 'Unknown repository',
+    repository_url: repository ? data_get(repository, 'html_url') : 'N/A',
+    sender_username: sender ? data_get(sender, 'login') : 'Unknown sender',
+    sender_url: sender ? data_get(sender, 'html_url') : 'N/A'
+  };
+}
+
 
 function data_get(obj, path) {
   return path.split('.').reduce((o, key) => (o || {})[key], obj);
@@ -216,11 +185,12 @@ app.use(cors({
   credentials: true  
 }));
 
+app.use(credentials);
 app.use('/', authRoutes);  
 app.use(authenticateUser)
 app.use('/', pullrequest(webhookResponses)); 
-app.use(credentials);
 app.use('/', userRoutes); 
+app.use('/', task);
 app.use('/',stripe);
 const PORT = 5050;
 app.listen(PORT, () => {

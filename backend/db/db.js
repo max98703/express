@@ -9,6 +9,7 @@ const path = require('path');
 const Sequelize = require('sequelize');
 const PushNotifications = require('@pusher/push-notifications-server');
 require('dotenv').config();
+const config = require('../config/config');  // Import the config
 
 const app = express();
 app.use(cors());
@@ -29,26 +30,21 @@ const query = (sql, values) =>
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_PASS,
+    user: "maxrai788@gmail.com",
+    pass: "rqcuswodywcazihj",
   },
 });
 
-const sequelize = new Sequelize('movies', 'root', '', {
-  host: 'localhost',
-  dialect: 'mysql',
-  pool: {
-    max: 10000,
-    min: 0,
-    acquire: 30000,
-    idle: 10000
-  }
+const sequelize = new Sequelize(config.database, config.username, config.password, {
+  host: config.host,
+  dialect: config.dialect,
+  pool: config.pool
 });
 
+// Authenticate the connection
 sequelize
   .authenticate()
   .then(() => {
-    console.log(process.env.DB_Name)
     console.log('Connection has been established successfully.');
   })
   .catch(err => {
@@ -56,8 +52,8 @@ sequelize
   });
   
 const beamsClient = new PushNotifications({
-  instanceId: process.env.INSTANCE_ID,
-  secretKey: process.env.SECRET_KEY,
+  instanceId: "sDvzfsdgfrg",
+  secretKey: "sdfjvbfvf",
 });
 
 const storage = multer.diskStorage({
@@ -68,6 +64,6 @@ const storage = multer.diskStorage({
 const upload = multer({ 
   storage, 
   limits: { fileSize: 3000000 } 
-}).single("myImage");
+});
 
 module.exports = { app, query, sequelize,transporter, beamsClient, upload };

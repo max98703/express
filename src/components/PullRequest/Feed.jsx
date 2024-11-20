@@ -64,7 +64,7 @@ const Feed = () => {
               <div className="flex flex-col">
                 <div className="flex items-center gap-4">
                   <div className="mb-1 text-2xl font-bold text-primary-500 dark:text-gray-300">
-                    Feed
+                    Feeds
                   </div>
                 </div>
                 <nav>
@@ -110,7 +110,7 @@ const Feed = () => {
 
           <div className="flex-1 flex flex-col">
             {/* Scrollable Feed Content */}
-            <div className="flex-1 overflow-y-auto w-2/5">
+            <div className="flex-1 overflow-y-auto w-3/5">
               {isLoading ? (
                 <div className="mt-4 p-4 bg-yellow-100 border border-yellow-300 rounded-md text-yellow-700">
                   <p className="font-semibold">
@@ -138,11 +138,11 @@ const Feed = () => {
                     </div>
 
                     {/* Activity Card */}
-                    <div className="flex-1 bg-white rounded-lg shadow hover:shadow-md transition-shadow duration-200 ease-in-out">
+                    <div className="flex-1 bg-white rounded-lg shadow hover:shadow-md transition-shadow duration-200   ease-in-out">
                       {/* Background for Username and Date */}
-                      <div className="bg-gray-100 p-2 rounded-md">
+                      <div className="bg-gray-100 p-2">
                         <div className="flex justify-between items-center mb-2">
-                          <p className="text-lg text-gray-500">
+                          <p className="text-lg text-gray-500 w-18">
                             <a
                               href={request.pull_request_url}
                               target="_blank"

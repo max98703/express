@@ -9,7 +9,7 @@ const authenticateToken = (req, res, next) => {
     return res.status(401).json({ message: 'Access denied. No token provided.' });
   }
 
-  jwt.verify(token, process.env.SECRET_KEY , (err, decoded) => {
+  jwt.verify(token, "d471145050e50e93b37eewfrweretfr" , (err, decoded) => {
     if (err) {
       return res.status(403).json({ message: 'Invalid token.' });
     }
