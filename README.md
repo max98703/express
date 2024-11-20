@@ -7,7 +7,7 @@
         Backend: Express.js (Node.js)
         Real-time Features: Python (using Pusher)
         Payment Processing: Stripe API
-        Authentication: Google, Facebook, and standard email/password login
+        Authentication: Google, Facebook, and standard email/password logins
       Features
         User Authentication:
   
