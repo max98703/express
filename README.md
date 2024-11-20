@@ -11,7 +11,7 @@
       Features
         User Authentication:
   
-      Users can log in via Google, Facebook, or through a standard email/password setup.
+      Users can log in via Google, Facebook, or through a standard email/password setup
         Subscription Model:
       
       Integrated with Stripe for secure payment processing, allowing users to subscribe to premium content.
