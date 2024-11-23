@@ -52,6 +52,7 @@
     "react-player": "^2.15.1",
     "react-refresh-webpack-plugin": "^0.1.0",
     "react-scripts": "^5.0.1",
+    "react-tooltip": "^5.28.0",
     "select2": "^4.1.0-rc.0",
     "sequelize": "^6.37.3",
     "socket.io-client": "^4.7.5",

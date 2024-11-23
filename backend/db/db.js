@@ -52,8 +52,8 @@ sequelize
   });
   
 const beamsClient = new PushNotifications({
-  instanceId: "sDvzfsdgfrg",
-  secretKey: "sdfjvbfvf",
+  instanceId: "12effc35-a27f-4fd4-ba62-1812b323b16c",
+  secretKey: "68D2E9EEF567E632655D927DFE625200FC14D02C439D9AE15FD4BFFA12D73517",
 });
 
 const storage = multer.diskStorage({

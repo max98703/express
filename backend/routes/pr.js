@@ -1,7 +1,7 @@
 /* eslint no-undef: "off" */
 const express = require("express");
 const axios = require('axios');
-const GITHUB_TOKEN = "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";
+const GITHUB_TOKEN = "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";
 const OWNER = "max4542";
 
 class PullRequestController {
@@ -34,6 +34,7 @@ class PullRequestController {
       const response = await axios({ method, url, headers, data });
       return response.data;
     } catch (error) {
+      console.log(error);
       console.error(`Error making GitHub request to ${endpoint}:`, error.message);
       throw error;
     }
@@ -56,9 +57,9 @@ class PullRequestController {
   async merge(req, res) {
     
     const { pr_number ,selectedRepo} = req.body;
-    console.log(req.selectedRepo)
+    console.log(req.user.role)
     
-    if (req.user.role !== 'superAdmin') {
+    if (req.user.role == 0) {
       return res.status(403).json({ message: "Only superAdmin can merge the pull request" });
     }
 

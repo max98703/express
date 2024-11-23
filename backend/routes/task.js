@@ -7,7 +7,8 @@ const projectRepository = require("../db/repository/projectRepository");
 const userRepository = require("../db/repository/user-repository");
 const collaboratorRepository = require("../db/repository/taskCollaboratorRepository");
 const attachmentRepository = require("../db/repository/taskAttachment");
-const {upload} = require("../db/db");
+const { publishLoginSuccessNotification } = require("../services/service");
+const { upload } = require("../db/db");
 class TaskController {
   constructor() {
     this.taskRepository = new taskRepository();
@@ -20,7 +21,12 @@ class TaskController {
   }
 
   initializeRoutes() {
-    this.router.post("/task/create", upload.array("myImage"),this.store.bind(this));
+    this.router.post(
+      "/task/create",
+      upload.array("myImage"),
+      this.store.bind(this)
+    );
+    this.router.post("/task/:id", this.update.bind(this));
     this.router.get("/tasks", this.tasks.bind(this));
     this.router.get("/user/task/dashboard", this.dashboard.bind(this));
   }
@@ -32,7 +38,7 @@ class TaskController {
         this.projectRepository.findAll(),
         this.userRepository.findAll(),
       ]);
-
+      console.log(tasks);
       res.status(200).json({ tasks, projects, users });
     } catch (error) {
       console.error("Error retrieving task:", error);
@@ -43,18 +49,23 @@ class TaskController {
   async dashboard(req, res) {
     try {
       const userId = req.user.user_id; // Assuming user info is available from session or JWT token
-  
+
       // Get all the tasks where the user is a collaborator
       const collaborators = await this.collaboratorRepository.findAll({
-        where: { collaborator_id: userId }
+        where: { collaborator_id: userId },
       });
-   
+    
       // Extract distinct task IDs from the collaborators
-      const taskIds = [...new Set(collaborators.map(collaborator => collaborator.task_id))];
-      console.log(taskIds);
+      const taskIds = [
+        ...new Set(collaborators.map((collaborator) => collaborator.task_id)),
+      ];
+
       // Now, find the tasks based on those task IDs
-      const tasks = await this.taskRepository.getAllTasksAssociatedToUsers(taskIds);
-   
+      const tasks = await this.taskRepository.getAllTasksAssociatedToUsers(
+        taskIds
+      );
+      console.log(tasks);
+
       // Return the tasks with their attachments
       res.status(200).json({ tasks: tasks });
     } catch (error) {
@@ -62,7 +73,7 @@ class TaskController {
       res.status(500).json({ message: "Failed to fetch tasks" });
     }
   }
-  
+
   async store(req, res) {
     const { title, description, deadline, projectId, priority } = req.body;
     const t = await sequelize.transaction();
@@ -124,6 +135,14 @@ class TaskController {
       // Send emails asynchronously
       const assigneeEmails = await this.getEmails(assignees);
       const reviewerEmails = await this.getEmails(reviewers);
+
+      const collaboratorIds = [
+        ...new Set(
+          collaborators.map((collaborator) => collaborator.collaborator_id)
+        ),
+      ];
+
+      await publishLoginSuccessNotification(collaboratorIds);
       Promise.all([
         this.sendTaskNotification(assigneeEmails, "Assignee", task),
         this.sendTaskNotification(reviewerEmails, "Reviewer", task),
@@ -138,52 +157,223 @@ class TaskController {
     }
   }
 
+  async update(req, res) {
+    const { id } = req.params;
+    const { deadline, projectId, priority } = req.body;
+    const t = await sequelize.transaction();
+
+    try {
+      const updated_by = req.user?.user_id;
+      const assignees = req.body.assignees || "[]";
+      const reviewers = req.body.reviewers || "[]";
+
+      // Retrieve existing task by taskId
+      const task = await this.taskRepository.findById(id);
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+
+      // Update task details
+      const updatedTask = await this.taskRepository.update(
+        id,
+        {
+          deadline,
+          project_id: projectId,
+          priority,
+          updated_by:req.user.user_id,
+        },
+        { transaction: t }
+      );
+
+      // Step 1: Get current collaborators
+      const currentCollaborators =
+        await this.collaboratorRepository.findByTaskId(id, { transaction: t });
+
+      // Step 2: Separate the assignees and reviewers from current collaborators
+      const currentAssignees = currentCollaborators.filter(
+        (collaborator) => collaborator.flag === false
+      ); // flag 0 is assignee
+      const currentReviewers = currentCollaborators.filter(
+        (collaborator) => collaborator.flag === true
+      ); // flag 1 is reviewer
+
+      // // Step 3: Remove those who are no longer assignees or reviewers
+      const toRemoveAssignees = currentAssignees.filter(
+        (collaborator) => !assignees.includes(collaborator.collaborator_id)
+      );
+      const toRemoveReviewers = currentReviewers.filter(
+        (collaborator) => !reviewers.includes(collaborator.collaborator_id)
+      );
+
+      // // Delete the removed collaborators
+      const collaboratorsToDelete = [
+        ...toRemoveAssignees.map((collaborator) => collaborator.id),
+        ...toRemoveReviewers.map((collaborator) => collaborator.id),
+      ];
+
+      if (collaboratorsToDelete.length > 0) {
+        await this.collaboratorRepository.deleteByIds(
+          collaboratorsToDelete,
+          id,
+          { transaction: t }
+        );
+      }
+
+      // // Step 4: Add new assignees and reviewers
+      const newCollaborators = [
+        ...assignees
+          .filter(
+            (assignee) =>
+              !currentAssignees.some(
+                (collaborator) => collaborator.collaborator_id === assignee
+              )
+          )
+          .map((assignee) => ({
+            task_id: id,
+            collaborator_id: assignee,
+            flag: 0, // Assignee flag
+            created_by: updated_by,
+          })),
+        ...reviewers
+          .filter(
+            (reviewer) =>
+              !currentReviewers.some(
+                (collaborator) => collaborator.collaborator_id === reviewer
+              )
+          )
+          .map((reviewer) => ({
+            task_id: id,
+            collaborator_id: reviewer,
+            flag: 1, // Reviewer flag
+            created_by: updated_by,
+          })),
+      ];
+
+      console.log(newCollaborators);
+      // // Bulk create new collaborators
+      let createdCollaborators = [];
+      if (newCollaborators.length > 0) {
+          createdCollaborators = await this.collaboratorRepository.bulkCreate(newCollaborators, {
+          transaction: t,
+        });
+      }
+
+      // // Commit the transaction
+      await t.commit();
+
+      const collaboratorIds = [
+        ...new Set(
+          newCollaborators.map((collaborator) => String(collaborator.collaborator_id))
+        ),
+      ];
+
+      console.log(collaboratorIds);
+      await publishLoginSuccessNotification(collaboratorIds);
+
+      const newAssignees = newCollaborators.filter(
+        (collaborator) => collaborator.flag === 0
+      );
+      const newReviewers = newCollaborators.filter(
+        (collaborator) => collaborator.flag === 1
+      );
+      const assigneeEmails = await this.getEmails(
+        newAssignees.map((c) => c.collaborator_id)
+      );
+      const reviewerEmails = await this.getEmails(
+        newReviewers.map((c) => c.collaborator_id)
+      );
+      console.log(assigneeEmails, reviewerEmails);
+      const notificationPromises = [];
+
+      // Add notifications for assignees if there are any emails
+      if (assigneeEmails.length > 0) {
+        notificationPromises.push(
+          this.sendTaskNotification(assigneeEmails, "Assignee", updatedTask)
+        );
+      }
+
+      // Add notifications for reviewers if there are any emails
+      if (reviewerEmails.length > 0) {
+        notificationPromises.push(
+          this.sendTaskNotification(reviewerEmails, "Reviewer", updatedTask)
+        );
+      }
+
+      // Execute only if there are notification promises
+      if (notificationPromises.length > 0) {
+        Promise.all(notificationPromises).catch((error) =>
+          console.error("Error sending emails:", error)
+        );
+      }
+      
+      // // Respond with success
+      res
+        .status(200)
+        .json({ message: "Task updated successfully", task: updatedTask,newCollaborators:  createdCollaborators });
+    } catch (error) {
+      await t.rollback();
+      console.error("Error updating task:", error);
+      res.status(500).json({ message: "Failed to update task" });
+    }
+  }
+
   // Function to send task notification emails
   async sendTaskNotification(emails, role, task) {
     if (emails.length === 0) return;
 
     const mailOptions = {
-      from: "maxrai788@gmail.com", // Sender address
-      to: emails.join(","), // Join multiple emails if there are more than one
+      from: "maxrai788@gmail.com",
+      to: emails.join(","),
       subject: `You have been assigned as a ${role} to the task: ${task.title}`,
       html: `
-      <div style="font-family: Arial, sans-serif; background-color: #f3f4f6; padding: 40px;">
-        <div style="max-width: 600px; margin: auto; background-color: #fff; border-radius: 12px; box-shadow: 0 8px 12px rgba(0, 0, 0, 0.1); overflow: hidden;">
-          <div style="background-color: #f3f4f7; color: white; padding: 20px; text-align: center;">
-            <h2 style="font-size: 24px; margin: 0;">New Task Assigned: ${
-              task.title
-            }</h2>
-          </div>
-          <div style="padding: 20px;">
-            <p style="font-size: 16px; color: #333; margin-bottom: 20px;">Hello,</p>
-            <p style="font-size: 16px; color: #333; line-height: 1.5;">You have been assigned a new task <strong>${
-              task.title
-            }</strong> in the project management system. Here are the details:</p>
-            
-            <div style="background-color: #f9fafb; border-radius: 8px; padding: 20px; margin-top: 20px;">
-              <h3 style="font-size: 18px; color: #4c6ef5; margin-bottom: 15px;">Task Details</h3>
-              <p style="font-size: 15px; color: #555; margin: 5px 0;"><strong>Description:</strong> ${
-                task.description || "No description available."
-              }</p>
-              <p style="font-size: 15px; color: #555; margin: 5px 0;"><strong>Deadline:</strong> ${
-                task.deadline
-                  ? new Date(task.deadline).toLocaleDateString()
-                  : "No deadline set."
-              }</p>
+        <div style="font-family: Arial, sans-serif; background-color: #f8fafc; padding: 40px; color: #1f2937;">
+          <div style="max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); overflow: hidden;">
+            <div style="background-color: #2563eb; color: #ffffff; padding: 24px; text-align: center; border-bottom: 4px solid #1e40af;">
+              <h2 style="font-size: 24px; font-weight: bold; margin: 0;">Task Assigned: ${task.title}</h2>
             </div>
-
-            <p style="font-size: 16px; color: #333; margin-top: 20px;">Please log into the project management system to review and update the task as needed.</p>
-
-            <div style="margin-top: 30px; text-align: center; padding: 15px;">
-              <p style="font-size: 14px; color: #888;">Best Regards,</p>
-              <p style="font-size: 14px; color: #888;">Your Project Management Team</p>
+            <div style="padding: 24px;">
+              <p style="font-size: 16px; margin-bottom: 16px;">Hi,</p>
+              <p style="font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+                You have been assigned as a <strong>${role}</strong> for the task <strong>${task.title}</strong>. Below are the details:
+              </p>
+              <div style="background-color: #f1f5f9; padding: 16px; border-radius: 6px; margin-bottom: 20px;">
+                <h3 style="font-size: 18px; font-weight: bold; color: #2563eb; margin-bottom: 12px;">Task Details</h3>
+                <p style="margin: 4px 0; font-size: 15px;"><strong>Description:</strong> ${
+                  task.description || "No description provided."
+                }</p>
+                <p style="margin: 4px 0; font-size: 15px;"><strong>Deadline:</strong> ${
+                  task.deadline
+                    ? new Date(task.deadline).toLocaleDateString()
+                    : "No deadline set."
+                }</p>
+              </div>
+              <p style="font-size: 16px; margin-bottom: 20px;">
+                Please log into the project management system to review and update the task as needed.
+              </p>
+              <a href="https://yourprojectmanagement.com" style="
+                  display: inline-block; 
+                  background-color: #2563eb; 
+                  color: #ffffff; 
+                  padding: 12px 24px; 
+                  text-decoration: none; 
+                  border-radius: 6px; 
+                  font-size: 16px; 
+                  font-weight: bold;
+                  text-align: center;
+                  margin-top: 20px;
+                ">
+                Go to Dashboard
+              </a>
+            </div>
+            <div style="padding: 16px; background-color: #f8fafc; text-align: center; border-top: 1px solid #e5e7eb;">
+              <p style="font-size: 14px; color: #6b7280; margin: 0;">Best Regards,</p>
+              <p style="font-size: 14px; color: #6b7280; margin: 0;">Your Project Management Team</p>
             </div>
           </div>
         </div>
-      </div>
-
-    `,
+      `,
     };
+    
 
     // Send the email
     try {

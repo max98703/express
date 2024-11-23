@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState ,useMemo} from "react";
 import Activity from "../PullRequest/Activity.jsx";
 import api from "../../api/api.js";
 
@@ -9,11 +9,15 @@ const Dashboard = () => {
     "To Review": [],
     Completed: [],
   });
-
+  const [projects, setProjects] = useState([]);
+  const [members, setMembers] = useState([]);
+  console.log(groupedTasks.Completed);
+  const [selectedProject, setSelectedProject] = useState(null);
   const fetchUserTasks = async () => {
     try {
       const response = await api.get("/user/task/dashboard");
       const fetchedTasks = response.data.tasks;
+      
       console.log(fetchedTasks);
       // Group tasks by status
       const tasksByStatus = {
@@ -24,7 +28,29 @@ const Dashboard = () => {
         ),
         Completed: fetchedTasks.filter((task) => task.status === "4"),
       };
+      const projectSet = new Set();
 
+      fetchedTasks.forEach((task) => {
+        if (task.project) {
+          const { id, name } = task.project;
+          projectSet.add(JSON.stringify({ id, name })); // Serialize to ensure uniqueness
+        }
+      });
+      const projects = Array.from(projectSet).map((item) => JSON.parse(item)); // Deserialize to get array of objects
+      const collaboratorSet = new Set();
+
+    fetchedTasks.forEach((task) => {
+      task.collaborators.forEach((collaborator) => {
+        const name = collaborator.user?.name;
+        if (name) {
+          collaboratorSet.add(JSON.stringify({name})); // Add unique names to the set
+        }
+      });
+    });
+    const uniqueCollaborators = Array.from(collaboratorSet).map((name) => JSON.parse(name));
+    console.log(uniqueCollaborators);
+      setMembers(uniqueCollaborators);
+      setProjects(projects);
       setGroupedTasks(tasksByStatus);
     } catch (err) {
       console.error("Error fetching tasks:", err);
@@ -53,8 +79,8 @@ const Dashboard = () => {
   const sortTasksByPriority = (column) => {
     const sortedTasks = [...groupedTasks[column]].sort((a, b) => {
       return sortOrder[column]
-        ? a.priority - b.priority
-        : b.priority - a.priority;
+        ? a.id - b.id
+        : b.id - a.id;
     });
 
     setGroupedTasks((prevTasks) => ({
@@ -80,7 +106,22 @@ const Dashboard = () => {
     const lastLetter = nameParts[nameParts.length - 1][0].toUpperCase(); // Capitalize the last letter
     return `${firstLetter}${lastLetter}`;
   };
+
   
+  const filteredTasks = useMemo(() => {
+    if (!selectedProject) return groupedTasks; // Return all tasks if no project is selected
+
+    const filtered = {};
+    Object.keys(groupedTasks).forEach((status) => {
+      filtered[status] = groupedTasks[status].filter(
+        (task) => task.project?.name === selectedProject
+      );
+    });
+
+    return filtered;
+  }, [selectedProject, groupedTasks]);
+   
+  console.log(filteredTasks);
   const renderTaskColumn = (title, tasks, bgColor, textColor) => {
     return (
       <div className={`w-11/12 py-2 px-2 h-1/6 overflow-y-auto relative`}>
@@ -199,44 +240,214 @@ const Dashboard = () => {
       </div>
     );
   };
-  
 
+  const [activeSection, setActiveSection] = useState('tasks'); // Default to 'tasks'
+
+  const handleSectionChange = (section) => {
+    setActiveSection(section);
+  };
+
+  const notes = [
+    {
+      id: 1,
+      title: "This is Docket note.",
+      date: "May 20, 2020",
+      color: "bg-orange-300",
+    },
+    {
+      id: 2,
+      title:
+        "The beginning of screenless design: UI jobs to be taken over by Solution Architect",
+      date: "May 21, 2020",
+      color: "bg-yellow-300",
+    },
+    {
+      id: 3,
+      title:
+        "13 Things You Should Give Up If You Want To Be a Successful UX Designer",
+      date: "May 25, 2020",
+      color: "bg-orange-200",
+    },
+    {
+      id: 4,
+      title: "10 UI & UX Lessons from Designing My Own Product",
+      color: "bg-purple-300",
+    },
+    {
+      id: 5,
+      title: "52 Research Terms you need to know as a UX Designer",
+      color: "bg-blue-300",
+    },
+    {
+      id: 6,
+      title: "Text fields & Forms design – UI component series",
+      color: "bg-teal-300",
+    },
+  ];
+  const fadeInAnimation = {
+    animation: "fadeIn 1s ease-in-out",
+  };
   return (
     <Activity>
-      <div className="overflow-x-auto mt-4 mb-4 bg-white h-full example">
-        <div className="p-6 mt-12 w-lvw ">
-          <div className="flex gap-4">
-            {/* Open Column */}
-            {renderTaskColumn("Open", groupedTasks.Open, "gray-50", "blue-600")}
+      <div className="overflow-x-auto mt-4 bg-white h-full example">
+        <div className=" mt-16 w-full flex ">
+          {/* Sidebar for Projects */}
+          <div className="w-1/5 bg-white border-r p-2  border-gray-200">
+  {/* Projects Section */}
+  <h3 className="text-lg font-semibold text-gray-800 mb-3 mt-2">Projects</h3>
+  <ul className="h-48 overflow-y-auto space-y-3 example">
+    {projects.map((project) => (
+      <li
+        key={project.id}
+        onClick={() => setSelectedProject(project.name)} 
+        className="flex justify-between items-center p-2  hover:bg-blue-50 border border-gray-300 rounded-lg transition-colors duration-200 shadow-sm"
+      >
+        <span className="font-medium text-gray-800">{project.name}</span>
+        <button className="text-gray-500 hover:text-blue-600 transition">
+          ⋮
+        </button>
+      </li>
+    ))}
+  </ul>
 
+  {/* Team Members Section */}
+  <h3 className="text-lg font-semibold text-gray-800 mt-6 mb-3">Team Members</h3>
+  <ul className="h-52 overflow-y-auto space-y-3 example">
+    {members.map((member, index) => (
+      <li
+        key={index}
+        className="flex justify-between items-center p-1  hover:bg-blue-50 border border-gray-100 rounded-lg transition-colors duration-200 shadow-sm"
+      >
+        <div className="flex items-center gap-3">
+          {/* Avatar */}
+          <div className="w-10 h-10 bg-blue-500 text-white flex items-center justify-center rounded-full text-sm font-semibold">
+            {member.name
+              .split(" ")
+              .map((part) => part[0])
+              .join("")}
+          </div>
+          {/* Member Name */}
+          <span className="font-medium text-gray-800">{member.name}</span>
+        </div>
+        {/* Action Button */}
+        <button className="text-gray-500 hover:text-blue-600 transition">
+          ⋮
+        </button>
+
+
+      </li>
+    ))}
+  </ul>
+</div>
+<div className="w-full h-full">
+  
+<div className="w-full h-12 ">
+  <ul className="flex gap-12 items-center h-full px-4 border-b-2 border-gray-300">
+    <li className="text-sm font-semibold text-gray-700 hover:text-blue-600 cursor-pointer">
+      Overview
+    </li>
+    <li onClick={() => handleSectionChange('tasks')} className="text-sm font-semibold text-gray-700 hover:text-blue-600 cursor-pointer">
+      Tasks
+    </li>
+    <li  onClick={() => handleSectionChange('notes')}  className="text-sm font-semibold text-gray-700 hover:text-blue-600 cursor-pointer">
+      Notes
+    </li>
+    <li  onClick={() => handleSectionChange('questions')} className="text-sm font-semibold text-gray-700 hover:text-blue-600 cursor-pointer">
+      Questions
+    </li>
+  </ul>
+</div>
+          {/* Tasks Section */}
+        { activeSection == "tasks" && ( 
+          <div className="flex-1 flex gap-4 h-full" style={fadeInAnimation}>
+            {/* Open Column */}
+            {renderTaskColumn("Open", filteredTasks.Open, "gray-50", "blue-600")}
+  
             {/* In Progress Column */}
             {renderTaskColumn(
               "In Progress",
-              groupedTasks["In Progress"],
+              filteredTasks["In Progress"],
               "yellow-50",
               "yellow-600"
             )}
-
+  
             {/* To Review Column */}
             {renderTaskColumn(
               "To Review",
-              groupedTasks["To Review"],
+              filteredTasks["To Review"],
               "orange-50",
               "orange-600"
             )}
-
+  
             {/* Completed Column */}
             {renderTaskColumn(
               "Completed",
-              groupedTasks.Completed,
-              "green-50",
-              "green-600"
+              filteredTasks.Completed,
+              "gray-50",
+              "blue-600"
             )}
+        
+          </div>
+        )}
+          <style>{`
+        @keyframes fadeIn {
+          0% {
+            opacity: 0;
+          }
+          100% {
+            opacity: 1;
+          }
+        }
+      `}</style>
+ {activeSection === "notes" && (
+          <div style={fadeInAnimation} className="p-6">
+            <div className="flex">
+              <div>
+                <button className="p-1 bg-black text-white rounded-full">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                    stroke="currentColor"
+                    className="w-6 h-6"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 4.5v15m7.5-7.5h-15"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Notes Grid */}
+              <div className="flex-1 grid grid-cols-3 gap-6 p-4">
+                {notes.map((note) => (
+                  <div
+                    key={note.id}
+                    className={`p-4 rounded-lg ${note.color}`}
+                  >
+                    <h3 className="font-semibold text-lg">{note.title}</h3>
+                    {note.date && (
+                      <p className="mt-2 text-gray-700 text-sm">{note.date}</p>
+                    )}
+                    <button className="mt-4 p-2 bg-black text-white rounded-md">
+                      Edit
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
           </div>
         </div>
       </div>
     </Activity>
   );
+  
 };
 
 export default Dashboard;

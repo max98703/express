@@ -97,8 +97,9 @@ const Dashboard = () => {
 
   return (
     <Activity>
-      <div className="overflow-x-auto example mt-4">
+      <div className="overflow-x-auto example mt-4 min-w-full">
         <div className="p-6 mt-4">
+          
           <header>
             <div className="flex justify-between gap-5 lg:items-center">
               <div className="flex flex-col">
@@ -133,6 +134,7 @@ const Dashboard = () => {
               </div>
             </div>
           </header>
+          <div className="min-w-52">
           {isLoading ? (
             <Spinner />
           ) : error ? (
@@ -192,6 +194,7 @@ const Dashboard = () => {
               </table>
             </div>
           )}
+          </div>
         </div>
       </div>
     </Activity>
