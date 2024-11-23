@@ -1,4 +1,3 @@
-// migrations/TIMESTAMP-create-projects-table.js
 'use strict';
 
 module.exports = {

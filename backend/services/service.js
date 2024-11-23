@@ -64,14 +64,14 @@ const comparePasswords = async (password, hashedPassword) => {
 
 const publishLoginSuccessNotification = async (user) => {
   try {
-    console.log(user.id);
     const { publishResponse } = await beamsClient.publishToInterests(
-      [user.id],
+      user,
       {
         web: {
           notification: {
-            title: "Login Success",
-            body: `${user.email} logged in successfully!`,
+            title: "Task created",
+            body: `You have been assigned to task`,
+            deep_link: 'https://www.pusher.com',
           },
         },
       }

@@ -12,10 +12,42 @@ import jwt
 import io
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
+import mysql.connector
+import requests
+from werkzeug.security import check_password_hash
+import bcrypt
+from pusher_push_notifications import PushNotifications
+
 
 # Load environment variables
 load_dotenv()
 
+class Database:
+    def __init__(self, host, user, password, database):
+        self.host = host
+        self.user = user
+        self.password = password
+        self.database = database
+
+    def execute_query(self, query, params=None):
+        try:
+            connection = mysql.connector.connect(
+                host=self.host,
+                user=self.user,
+                password=self.password,
+                database=self.database
+            )
+            cursor = connection.cursor(dictionary=True)
+            cursor.execute(query, params)
+            result = cursor.fetchall()
+            connection.commit()
+            return result
+        except mysql.connector.Error as err:
+            return None
+        finally:
+            cursor.close()
+            connection.close()
+            
 class PusherClient:
     def __init__(self):
         self.client = pusher.Pusher(
@@ -25,10 +57,30 @@ class PusherClient:
             cluster=os.getenv('PUSHER_CLUSTER'),
             ssl=True
         )
+        
+        self.beams_client = PushNotifications(
+            instance_id=os.getenv('INSTANCE_ID'),
+            secret_key=os.getenv('PRIMARY_KEY'),
+        )
 
     def send_batch(self, channel, event, data):
         self.client.trigger(channel, event, data)
+    
+    def send_login_notification(self, user):
+        response = self.beams_client.publish_to_interests(
+        interests=[f"{user['id']}"],  # Correctly targeting the user based on ID
+        publish_body={
+            'web': {
+                'notification': {
+                'title': "Login Success",
+                'body': f"{user['email']} logged in successfully!",  # Corrected string formatting
+                'deep_link': 'https://www.pusher.com',
+                    },
+                },
+            },
+        )
 
+        print(response['publishId'])  # Logging the response for debugging
 class MovieData:
     def __init__(self, file_path):
         self.file_path = file_path
@@ -103,6 +155,7 @@ class MovieApp:
         self.pusher_client = PusherClient()
         self.movie_data = MovieData('movies.json')
         self.notifier = MovieNotifier(self.movie_data, self.pusher_client)
+        self.query= Database(host='localhost', user='root', password='Alina123@', database='movies')
         self.users = self.initialize_users()
         self.active_users = {}
         self.UPLOAD_FOLDER = '../../public/uploads'
@@ -111,11 +164,9 @@ class MovieApp:
         os.makedirs(self.UPLOAD_FOLDER, exist_ok=True)
 
     def initialize_users(self):
-        return {
-            "max": {"id": 1, "username": "max", "role": "superadmin", "img": "1724221288745.jpeg"},
-            "customercare": {"id": 2, "username": "customercare", "role": "customer_care", "img": "nothing"},
-            "alina": {"id": 3, "username": "alina", "role": "user", "img": "1723709496205.jpg"}
-        }
+        query = """ SELECT * FROM users"""
+        result = self.query.execute_query(query)
+        return result if result else None
 
     def setup_routes(self):
         @self.app.route('/movies', methods=['GET'])
@@ -127,20 +178,93 @@ class MovieApp:
         @self.app.route('/login', methods=['POST'])
         def login():
             data = request.get_json()
-            username = data.get('username')
-            user = self.users.get(username)
+            email = data.get('email')
+            password = data.get('password')
+            
+            # Ensure there's no unnecessary whitespace or processing delay
+            if not email or not password:
+                return jsonify({"message": "Email and password are required"}), 400
+            
+            # Make sure the query is optimized with indexing on 'email'
+            query = "SELECT id, logo, admin, name, password FROM users WHERE email = %s LIMIT 1"
+            user = self.query.execute_query(query, (email,))  # Ensure execute_query uses parameterized queries
+            
+            if not user:
+                return jsonify({"message": "Invalid email or password"}), 401
 
-            if user:
-                token = jwt.encode({
-                    'user_id': user['id'],
-                    'image':user['img'],
-                    'role':user['role'],
-                    'name':user['username'],
-                    'exp': datetime.now() + timedelta(hours=1)
-                }, self.app.config['SECRET_KEY'], algorithm='HS256')
-                return jsonify({"message": "Login successful", "token": token, "role": user['role']}), 200
-            return jsonify({"message": "Invalid username"}), 401
+            user = user[0]  # Single user result from query
+
+            # Validate the password using bcrypt
+            if not bcrypt.checkpw(password.encode('utf-8'), user['password'].encode('utf-8')):
+                return jsonify({"message": "Invalid email or password"}), 401
+
+            # Create JWT token with necessary claims
+            token = jwt.encode({
+                'user_id': user['id'],
+                'image': user['logo'],
+                'role': user['admin'],
+                'name': user['name'],
+                'exp': datetime.now() + timedelta(hours=1)
+            }, self.app.config['SECRET_KEY'], algorithm='HS256')
+
+            # Return success message and JWT token
+            return jsonify({
+                "message": "You Are Logged In", 
+                "token": token, 
+                "role": user['admin']
+            }), 200
         
+        @self.app.route('/tasks/<int:task_id>', methods=['GET'])
+        def get_task_details(task_id):
+            # Fetch task details, attachments, and collaborators in one query
+            task_query = """
+                SELECT 
+                    t.id AS task_id, 
+                    t.title AS task_title, 
+                    t.description AS task_description, 
+                    t.deadline, 
+                    t.priority, 
+                    p.name AS project_name, 
+                    u.name AS created_by
+                FROM tasks t
+                JOIN projects p ON t.project_id = p.id
+                JOIN users u ON t.created_by = u.id
+                WHERE t.id = %s
+            """
+            task = self.query.execute_query(task_query, (task_id,))
+            
+            if not task:
+                return jsonify({"message": "Task not found"}), 404
+            
+            task = task[0]  # Assuming only one task will be returned
+
+            # Fetch related data
+            attachments = self.query.execute_query("SELECT name AS image FROM task_attachments WHERE task_id = %s", (task_id,))
+            users = self.query.execute_query("SELECT *  FROM users ")
+            projecs = self.query.execute_query("SELECT *  FROM projects ")
+            collaborators = self.query.execute_query("""
+                SELECT 
+                    u.name AS collaborator_username, 
+                    c.flag AS collaborator_flag
+                FROM task_collaborators c
+                JOIN users u ON c.collaborator_id = u.id
+                WHERE c.task_id = %s
+            """, (task_id,))
+
+            # Build response in one step
+            return jsonify({
+                "task_id": task["task_id"],
+                "task_title": task["task_title"],
+                "task_description": task["task_description"],
+                "deadline": task["deadline"],
+                "priority": task["priority"],
+                "project_name": task["project_name"],
+                "createdBy": task["created_by"],
+                "task_attachments": attachments,
+                "collaborators": collaborators,
+            }), 200
+
+
         @self.socketio.on('connect')
         def handle_connect():
             print(f"Client connected with session ID {request.sid}")
@@ -169,7 +293,7 @@ class MovieApp:
         def handle_message(data):
             token = data.get('token')
             message = data.get('message')
-            target_id = int(data.get('target_id'))
+            target_id = data.get('target_id')
             files = data.get('files', [])  # List of file data and original names
             file_urls = []
             current_time = datetime.now().strftime('%Y-%m-%d %I:%M %p')
@@ -250,9 +374,9 @@ class MovieApp:
                 
     def broadcast_active_users(self): 
         users_list = [
-            {'id': user_id, 'username': details['username'], 'img': details['img']}
+            {'id':user_id, 'username': user['name'], 'img': user['logo']}
             for user_id, session_id in self.active_users.items()
-            for username, details in self.users.items() if details['id'] == user_id
+            for user in self.users if user['id'] == user_id
         ]
         self.socketio.emit('update_active_users', users_list)
 

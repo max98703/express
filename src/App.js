@@ -25,6 +25,7 @@ import Taskdashboard from "./components/Task/Dashboard";
 import Feed from "./components/Feeds/Feed";
 import * as PusherPushNotifications from "@pusher/push-notifications-web";
 import Logins from "./components/PullRequest/AdminLogin";
+import Project from "./components/Project/Project";
 
 const PrivateRoute = ({ element }) => {
   return userService.loggedIn() ? (
@@ -39,6 +40,15 @@ const PrivateRoute = ({ element }) => {
   );
 };
 
+const PrivateAdmin = ({ element }) => {
+  return userService.loggedIn() ? (
+    <>  
+      {element}
+    </>
+  ) : (
+    <Navigate to="/admin" replace />
+  );
+};
 function App() {
   useEffect(() => {
     const beamsClient = new PusherPushNotifications.Client({
@@ -49,7 +59,7 @@ function App() {
       .then(() => {
         const user = userService.getUserData();
         if (user) {
-          const userId = user.id; 
+          const userId = user.user_id; 
           return beamsClient.addDeviceInterest(userId);
         }
       })
@@ -63,29 +73,31 @@ function App() {
 
   return (
     <Routes>
-       <Route path="/chat" element={<CustomerCare />} />
-      <Route path="/feed" element={<Feed />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/pr/feed" element={<PrFeed />} />
-      <Route path="/dashboard" element={<Dashboard/>}/>
-      <Route path="/pr" element={<Pr />} />
       <Route path="/admin" element={<Logins />} />
-      <Route path="/pr/feed" element={<PrFeed />} />
-      <Route path="pr/collaborator" element={<Collaborator/>}/>
-      <Route path="/task" element={<TaskPage/>}/>
-      <Route path="/users" element={<Users/>}/>
-      <Route path="/pr" element={<Pr />} />
-      <Route path="/user/dashboard" element={<Taskdashboard/>} />
-      <Route path="/" element={<PrivateRoute element={<Home />} />} />
-      <Route path="/profile" element={<PrivateRoute element={<Profile />} />} />
-      <Route path="/payment" element={<PrivateRoute element={<Payment />} />} />
-      <Route path="/paymentproccess" element={<PrivateRoute element={<Paymentproccess />} />} />
-      <Route path="/movie/:movieName" element={<PrivateRoute element={<SearchMovie />} />} />
-      <Route path="/details/:id" element={<PrivateRoute element={<Detail />} />} />
-      <Route path="/category/:value" element={<PrivateRoute element={<Category />} />} />
-      <Route path="/password-reset" element={<PrivateRoute element={<Reset />} />} />
-      <Route path="*" element={<Missing />} />
-    </Routes>
+    <Route path="/chat" element={<PrivateAdmin element={<CustomerCare />} />} />
+    <Route path="/feed" element={<PrivateAdmin element={<Feed />} />} />
+    <Route path="/login" element={<Login />} />
+    <Route path="/pr/feed" element={<PrivateAdmin element={<PrFeed />} />} />
+    <Route path="/dashboard" element={<PrivateAdmin element={<Dashboard />} />} />
+    <Route path="/pr" element={<PrivateAdmin element={<Pr />} />} />
+    <Route path="/pr/collaborator" element={<PrivateAdmin element={<Collaborator />} />} />
+    <Route path="/task" element={<PrivateAdmin element={<TaskPage />} />} />
+    <Route path="/users" element={<PrivateAdmin element={<Users />} />} />
+    <Route path="/projects" element={<PrivateAdmin element={<Project />} />} />
+    <Route path="/user/dashboard" element={<PrivateAdmin element={<Taskdashboard />} />} />
+  
+    {/* Routes for regular users */}
+    <Route path="/" element={<PrivateRoute element={<Home />} />} />
+    <Route path="/profile" element={<PrivateRoute element={<Profile />} />} />
+    <Route path="/payment" element={<PrivateRoute element={<Payment />} />} />
+    <Route path="/paymentproccess" element={<PrivateRoute element={<Paymentproccess />} />} />
+    <Route path="/movie/:movieName" element={<PrivateRoute element={<SearchMovie />} />} />
+    <Route path="/details/:id" element={<PrivateRoute element={<Detail />} />} />
+    <Route path="/category/:value" element={<PrivateRoute element={<Category />} />} />
+    <Route path="/password-reset" element={<PrivateRoute element={<Reset />} />} />
+    <Route path="*" element={<Missing />} />
+  </Routes>
+  
   );
 }
 
