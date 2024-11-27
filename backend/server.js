@@ -17,6 +17,7 @@ const taskLog = require("./routes/taskLog");
 const authenticateUser = require("./middleware/authenticateUser");
 const { sendEmailWithReceipt } = require("./services/service");
 const { checkExpiredSubscriptions } = require("./services/cronJobs");
+const comment = require("./routes/comment");
 const bodyParser = require("body-parser");
 const Stripe = require("stripe");
 const crypto = require("crypto");
@@ -33,6 +34,8 @@ app.use(
   })
 );
 
+app.use(bodyParser.json({ limit: "10mb" }));
+app.use(bodyParser.urlencoded({ limit: "10mb", extended: true }));
 cron.schedule("*/5 * * * * *", async () => {
   await checkExpiredSubscriptions();
 });
@@ -196,6 +199,7 @@ app.use("/", task);
 app.use("/", project);
 app.use("/", taskLog);
 app.use("/", stripe);
+app.use("/", comment);
 const PORT = 5050;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
