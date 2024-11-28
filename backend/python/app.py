@@ -216,52 +216,119 @@ class MovieApp:
         
         @self.app.route('/tasks/<int:task_id>', methods=['GET'])
         def get_task_details(task_id):
-            # Fetch task details, attachments, and collaborators in one query
+            # Common function to execute a query and return the result as a list of dicts
+            def execute_and_format_query(query, params):
+                return [{key: value for key, value in row.items()} for row in self.query.execute_query(query, params)]
+
             task_query = """
                 SELECT 
                     t.id AS task_id, 
                     t.title AS task_title, 
                     t.description AS task_description, 
+                    t.status AS status,
                     t.deadline, 
                     t.priority, 
                     p.name AS project_name, 
                     u.name AS created_by
                 FROM tasks t
-                JOIN projects p ON t.project_id = p.id
-                JOIN users u ON t.created_by = u.id
+                LEFT JOIN projects p ON t.project_id = p.id
+                LEFT JOIN users u ON t.created_by = u.id
                 WHERE t.id = %s
             """
             task = self.query.execute_query(task_query, (task_id,))
-            
             if not task:
                 return jsonify({"message": "Task not found"}), 404
-            
-            task = task[0]  # Assuming only one task will be returned
+            task = task[0]  # Use the first result directly
 
-            # Fetch related data
-            attachments = self.query.execute_query("SELECT name AS image FROM task_attachments WHERE task_id = %s", (task_id,))
-            users = self.query.execute_query("SELECT *  FROM users ")
-            projecs = self.query.execute_query("SELECT *  FROM projects ")
-            collaborators = self.query.execute_query("""
+            # 2. Get Task Attachments
+            attachments_query = """
+                SELECT  
+                    ta.name AS attachment_name
+                FROM task_attachments ta
+                WHERE ta.task_id = %s
+                ORDER BY ta.id DESC
+            """
+            attachments = self.query.execute_query(attachments_query, (task_id,))
+
+            # 3. Get Task Collaborators
+            collaborators_query = """
                 SELECT 
-                    u.name AS collaborator_username, 
-                    c.flag AS collaborator_flag
-                FROM task_collaborators c
-                JOIN users u ON c.collaborator_id = u.id
-                WHERE c.task_id = %s
-            """, (task_id,))
+                    uc.name AS collaborator_name,
+                    tc.flag AS collaborator_flag
+                FROM task_collaborators tc
+                LEFT JOIN users uc ON tc.collaborator_id = uc.id
+                WHERE tc.task_id = %s
+            """
+            collaborators = self.query.execute_query(collaborators_query, (task_id,))
 
-            # Build response in one step
+            # 4. Get Task Comments
+            comments_query = """
+                SELECT
+                    c.comment AS comment_text,
+                    cu.name AS user_name,
+                    c.created_at AS comment_created_at,
+                    cu.logo AS user_logo
+                FROM comments c
+                LEFT JOIN users cu ON c.created_by = cu.id
+                WHERE c.task_id = %s
+                ORDER BY c.created_at DESC
+            """
+            comments = self.query.execute_query(comments_query, (task_id,))
+
+            # 5. Get Task Activity Logs (Status Changes)
+            activity_query = """
+                SELECT
+                    tl.previousStatus,
+                    tl.currentStatus,
+                    tl.created_at,
+                    u.logo,
+                    u.name 
+                FROM task_status_logs tl
+                LEFT JOIN users u ON tl.createdBy = u.id
+                WHERE tl.taskId = %s
+                ORDER BY tl.created_at DESC
+            """
+            logs = self.query.execute_query(activity_query, (task_id,))
+
+            # Combine comments and logs into a single list
+            combined_activity = []
+
+            # Add comments with a type identifier for differentiation
+            for comment in comments:
+                combined_activity.append({
+                    'type': 'comment',
+                    'text': comment['comment_text'],
+                    'user_name': comment['user_name'],
+                    'created_at': comment['comment_created_at'],
+                    'user_logo': comment['user_logo']
+                })
+
+            # Add logs with a type identifier for differentiation
+            for log in logs:
+                combined_activity.append({
+                    'type': 'activity',
+                    'previous_status': log['previousStatus'],
+                    'current_status': log['currentStatus'],
+                    'created_at': log['created_at'],
+                    'user_logo': log['logo'],
+                    'user_name': log['name']
+                })
+
+            # Sort the combined list by created_at in descending order
+            combined_activity = sorted(combined_activity, key=lambda x: x['created_at'], reverse=True)
+
             return jsonify({
                 "task_id": task["task_id"],
                 "task_title": task["task_title"],
                 "task_description": task["task_description"],
+                "status": task["status"],
                 "deadline": task["deadline"],
                 "priority": task["priority"],
                 "project_name": task["project_name"],
                 "createdBy": task["created_by"],
-                "task_attachments": attachments,
-                "collaborators": collaborators,
+                "task_attachments": attachments,  # Return list of attachments
+                "collaborators": collaborators,  # Return list of collaborators
+                "activity": combined_activity  # Return the combined and sorted activity (comments + logs)
             }), 200
 
 

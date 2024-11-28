@@ -1,18 +1,10 @@
 /* eslint no-undef: "off" */
 const express = require("express");
-const taskRepository = require("../db/repository/taskRepository");
 const projectRepository = require("../db/repository/projectRepository");
-const userRepository = require("../db/repository/user-repository");
-const collaboratorRepository = require("../db/repository/taskCollaboratorRepository");
-const attachmentRepository = require("../db/repository/taskAttachment");
 
 class ProjectController {
   constructor() {
-    this.taskRepository = new taskRepository();
     this.projectRepository = new projectRepository();
-    this.userRepository = new userRepository();
-    this.collaboratorRepository = new collaboratorRepository();
-    this.attachmentRepository = new attachmentRepository();
     this.router = express.Router();
     this.initializeRoutes();
   }

@@ -202,7 +202,10 @@ const SmartTable = ({ data, columns }) => {
         <option value="">Status</option>
         <option value="Assigned">Open</option>
         <option value="In Progress">In Progress</option>
-        <option value="Completed">Done</option>
+        <option value="Assigned For Review">Assigned For Review</option>
+        <option value="Reviewd">Reviewd</option>
+        <option value="Completed">Completed</option>
+        <option value="Closed">Closed</option>
       </select>
     </div>
   </div>

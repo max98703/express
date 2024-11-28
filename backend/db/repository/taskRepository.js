@@ -3,6 +3,7 @@ const tasks = require('../../model/taskModel'); // Ensure correct path
 const Project = require('../../model/projectModel')
 const TaskCollaborator = require('../../model/taskCollaboratorModel');
 const TaskAttachment = require('../../model/attachmentModel');
+const TaskComment = require('../../model/commentModel');
 const User = require("../../model/userLogin");
 
 const { format, isToday, isTomorrow ,isPast,differenceInDays } = require('date-fns');
@@ -90,6 +91,17 @@ class taskRepository extends BaseRepository {
                     model: TaskAttachment,
                     as: "attachments", 
                 },
+                {
+                    model: TaskComment,
+                    as: "comments", // Include task comments
+                    include: [
+                        {
+                            model: User,
+                            as: "creator", // Include user details for the comment creator
+                            attributes: ['id', 'name'], // Include only id and name
+                        }
+                    ]
+                }
             ],
             order: [['id', 'DESC']]  // Order by task `id` in descending order
         });

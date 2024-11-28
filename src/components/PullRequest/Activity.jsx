@@ -42,13 +42,13 @@ const Activity = ({ children }) => {
     <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
       <aside
-        className={`fixed h-full bg-white border-r transition-width duration-300 ${
+        className={`fixed h-full bg-white border-r-2 transition-width duration-300  ${
           isCompact ? "w-16" : "w-52"
         }`}
       >
         <div
     onClick={toggleSidebar}
-    className="absolute top-1 -right-3 bg-primary-500 text-white rounded-full p-2 cursor-pointer border border-white shadow-md"
+    className="absolute top-1 -right-2 bg-primary-500 text-white rounded-full p-2 cursor-pointer border border-white shadow-md"
   >
     {/* Icon with dynamic arrow */}
     {isCompact ? <span>&gt;</span> : <span>&lt;</span>}
@@ -82,7 +82,7 @@ const Activity = ({ children }) => {
               onClick={toggleTasks}
               className={`flex items-center ${
                 isCompact ? "justify-center" : "justify-start"
-              } py-3 px-4 w-full text-gray-600 rounded-lg ${
+              } py-3 px-4 w-full text-gray-600  ${
                 tasksOpen ? "bg-gray-200 font-semibold text-primary-500" : "hover:bg-gray-100"
               }`}
             >
@@ -94,21 +94,21 @@ const Activity = ({ children }) => {
                 <Link
                   to="/user/dashboard"
                   onClick={() => handleLinkClick("/user/dashboard")}
-                  className="flex items-center py-2 px-4 text-gray-600 hover:bg-gray-100"
+                  className="flex items-center py-2 px-4 text-gray-600 hover:bg-gray-100 no-underline mt-1"
                 >
                   Dashboard
                 </Link>
                 <Link
                   to="/task"
                   onClick={() => handleLinkClick("/task")}
-                  className="flex items-center py-2 px-4 text-gray-600 hover:bg-gray-100"
+                  className="flex items-center py-2 px-4 text-gray-600 hover:bg-gray-100 no-underline"
                 >
                   Task
                 </Link>
                 <Link
                   to="/tasks/project"
                   onClick={() => handleLinkClick("/tasks/project")}
-                  className="flex items-center py-2 px-4 text-gray-600 hover:bg-gray-100"
+                  className="flex items-center py-2 px-4 text-gray-600 hover:bg-gray-100 no-underline"
                 >
                   Project
                 </Link>
@@ -120,7 +120,7 @@ const Activity = ({ children }) => {
 
       {/* Main Content */}
       <div
-    className={`flex-1 flex flex-col transition-margin duration-300 ${
+    className={`flex-1 flex flex-col transition-margin duration-300 border-r-2 border-gray-300 ${
       isCompact ? "ml-16" : "ml-52"
     }`}
   >
@@ -138,7 +138,7 @@ const Activity = ({ children }) => {
               className="pl-10 w-full mr-2 h-14 rounded-full bg-gray-100 text-gray-600 focus:outline-none focus:bg-white focus:ring-2 focus:ring-primary-500"
             />
           </div>
-          <button className="flex items-center px-3 py-2 bg-gray-100 rounded-lg text-gray-600 hover:bg-gray-200">
+          <button className="flex items-center px-3 py-2 0 rounded-full text-gray-600 border  hover:bg-gray-200">
             <FaFilter /> Filter
           </button>
           <div className="relative ml-4">
@@ -150,10 +150,10 @@ const Activity = ({ children }) => {
             </div>
             {dropdownOpen && (
               <div className="absolute z-10 w-48 bg-white border rounded-lg shadow-lg right-1 mt-2">
-                <Link to="/profile" className="flex items-center gap-3 py-2 px-4 hover:bg-gray-100">
+                <Link to="/profile" className="flex items-center gap-3 py-2 px-4 hover:bg-gray-100 no-underline">
                   Profile
                 </Link>
-                <button onClick={Logout} className="flex items-center gap-3 py-2 px-4 hover:bg-gray-100 w-full">
+                <button onClick={Logout} className="flex items-center gap-3 py-2 px-4 text-gray-400 hover:bg-gray-100 w-full">
                   Logout
                 </button>
               </div>

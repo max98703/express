@@ -123,8 +123,10 @@ const TaskPage = () => {
         const statusMapping = {
           0: { color: "bg-yellow-300", label: "Assigned" },
           1: { color: "bg-blue-500 text-white", label: "In Progress" },
-          2: { color: "bg-green-500 text-white", label: "Completed" },
-          3: { color: "bg-gray-500 text-white", label: "Closed" },
+          2: { color: "bg-green-400 text-white", label: "Assigned For Review" },
+          3: { color: "bg-gray-500 text-white", label: "Reviewd" },
+          4: { color: "bg-blue-300 text-white", label: "Completed" },
+          5: { color: "bg-gree-300 text-white", label: "Closed" },
         };
 
         const { color, label } = statusMapping[row.status] || {
@@ -555,10 +557,11 @@ const TaskPage = () => {
         activityLogs.map((log, index) => {
           // Define status colors and labels
           const statusMap = {
-            "2": { color: "bg-gray-300", text: "Assigned" },
+            "0": { color: "bg-gray-300", text: "Assigned" },
             "1": { color: "bg-yellow-300", text: "In Progress" },
-            "3": { color: "bg-blue-300", text: "Reviewed" },
-            "4": { color: "bg-green-300", text: "Completed" },
+            "2": { color: "bg-blue-300", text: "Assigned For Review" },
+            "3": { color: "bg-green-300", text: "Reviewd" },
+            "4": { color: "bg-blue-300", text: "Completed" },
           };
 
           const prevStatus = statusMap[log.previousStatus] || {

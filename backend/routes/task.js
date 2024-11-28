@@ -9,6 +9,8 @@ const collaboratorRepository = require("../db/repository/taskCollaboratorReposit
 const attachmentRepository = require("../db/repository/taskAttachment");
 const { publishLoginSuccessNotification } = require("../services/service");
 const { upload } = require("../db/db");
+const { json } = require("body-parser");
+const { Json } = require("sequelize/lib/utils");
 class TaskController {
   constructor() {
     this.taskRepository = new taskRepository();
@@ -47,33 +49,80 @@ class TaskController {
   }
 
   async dashboard(req, res) {
+    const { assignee, reviewers, project } = req.query; // Access query params
+    console.log("Assignee:", assignee);  // For debugging
+  
     try {
       const userId = req.user.user_id; // Assuming user info is available from session or JWT token
-
+  
       // Get all the tasks where the user is a collaborator
       const collaborators = await this.collaboratorRepository.findAll({
         where: { collaborator_id: userId },
       });
-    
+  
       // Extract distinct task IDs from the collaborators
       const taskIds = [
         ...new Set(collaborators.map((collaborator) => collaborator.task_id)),
       ];
-
+  
       // Now, find the tasks based on those task IDs
-      const tasks = await this.taskRepository.getAllTasksAssociatedToUsers(
-        taskIds
-      );
-      console.log(tasks);
+      let tasks = await this.taskRepository.getAllTasksAssociatedToUsers(taskIds);
+  
+      // Handle project filtering
+      if (project) {
+        // Log project value for debugging
+        console.log("Filtering by project ID:", project);
+  
+        // Convert project to a number (assuming project_id in the task is numeric)
+        const projectId = Number(project);
+  
+        // Check if the conversion was successful (i.e., it's a valid number)
+        if (!isNaN(projectId)) {
+          tasks = tasks.filter(task => task.project_id === projectId);
+        } else {
+          console.error("Invalid project ID:", project);
+        }
+      }
+  
+      
+      // Handle assignee filtering (flag is true for assignee)
+      if (assignee) {
+        const assigneeArray = JSON.parse(assignee).map(id => Number(id));
 
+        if (Array.isArray(assigneeArray)) {
+          tasks = tasks.filter(task =>
+            task.collaborators
+              .filter(collaborator => collaborator.flag === true)  // Filter first by flag (assignee)
+              .some(collaborator => assigneeArray.includes(collaborator.collaborator_id))  // Then check if collaborator_id is in the assignee array
+          );
+        }
+      }
+
+      // Handle reviewers filtering (flag is false for reviewer)
+      if (reviewers) {
+        const reviewersArray = JSON.parse(reviewers).map(id => Number(id));
+
+        if (Array.isArray(reviewersArray)) {
+          tasks = tasks.filter(task =>
+            task.collaborators
+              .filter(collaborator => collaborator.flag === false)  // Filter first by flag (reviewer)
+              .some(collaborator => reviewersArray.includes(collaborator.collaborator_id))  // Then check if collaborator_id is in the reviewers array
+          );
+        }
+    }
+      // Fetch users and projects to return in response
+      const users = await this.userRepository.findAll();
+      const projects = await this.projectRepository.findAll();
+  
       // Return the tasks with their attachments
-      res.status(200).json({ tasks: tasks });
+      res.status(200).json({ tasks: tasks, users: users, projects: projects });
+  
     } catch (error) {
       console.error("Error fetching tasks:", error);
       res.status(500).json({ message: "Failed to fetch tasks" });
     }
   }
-
+  
   async store(req, res) {
     const { title, description, deadline, projectId, priority } = req.body;
     const t = await sequelize.transaction();

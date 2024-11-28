@@ -2,6 +2,7 @@ const { Model, DataTypes } = require('sequelize');
 const { sequelize } = require('./baseModel');
 const User = require('./userLogin'); // Assuming you have the User model defined elsewhere
 const TaskCollaborator = require('./taskCollaboratorModel'); // Assuming this model exists
+const TaskComment = require('./commentModel');
 const TaskAttachment = require('./attachmentModel');
 class Task extends Model {}
 
@@ -55,6 +56,12 @@ Task.hasMany(TaskCollaborator, {
   foreignKey: 'task_id',
   as: 'collaborators', // Alias to refer to collaborators for each task
   onDelete: 'CASCADE', // Ensures that collaborators are removed if the task is deleted
+});
+
+Task.hasMany(TaskComment, {
+  foreignKey: 'task_id',
+  as: 'comments', // Alias to refer to comments for each task
+  onDelete: 'CASCADE', // Ensures that comments are removed if the task is deleted
 });
 
 // Task model (task.js)

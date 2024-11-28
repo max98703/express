@@ -26,6 +26,7 @@ import Feed from "./components/Feeds/Feed";
 import * as PusherPushNotifications from "@pusher/push-notifications-web";
 import Logins from "./components/PullRequest/AdminLogin";
 import Project from "./components/Project/Project";
+import TaskDetail from "./components/TaskDetail/TaskDetail";
 
 const PrivateRoute = ({ element }) => {
   return userService.loggedIn() ? (
@@ -85,6 +86,7 @@ function App() {
     <Route path="/users" element={<PrivateAdmin element={<Users />} />} />
     <Route path="/projects" element={<PrivateAdmin element={<Project />} />} />
     <Route path="/user/dashboard" element={<PrivateAdmin element={<Taskdashboard />} />} />
+    <Route path="/task/details/:id" element={<PrivateAdmin element={<TaskDetail/>} />} />
   
     {/* Routes for regular users */}
     <Route path="/" element={<PrivateRoute element={<Home />} />} />
