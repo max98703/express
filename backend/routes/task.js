@@ -28,7 +28,8 @@ class TaskController {
       upload.array("myImage"),
       this.store.bind(this)
     );
-    this.router.post("/task/:id", this.update.bind(this));
+    this.router.post("/task/update/:id", this.update.bind(this));
+    this.router.get("/task/edit/:id", this.edit.bind(this));
     this.router.get("/tasks", this.tasks.bind(this));
     this.router.get("/user/task/dashboard", this.dashboard.bind(this));
   }
@@ -42,6 +43,20 @@ class TaskController {
       ]);
       console.log(tasks);
       res.status(200).json({ tasks, projects, users });
+    } catch (error) {
+      console.error("Error retrieving task:", error);
+      res.status(500).json({ message: "Failed to retrieve task" });
+    }
+  }
+  
+  async edit(req, res) {
+    const {id} = req.params;
+    try {
+      const [tasks] = await Promise.all([
+        this.taskRepository.getAllTasksAssociatedToUsers(id)
+      ]);
+  
+      res.status(200).json({ tasks });
     } catch (error) {
       console.error("Error retrieving task:", error);
       res.status(500).json({ message: "Failed to retrieve task" });

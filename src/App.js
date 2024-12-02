@@ -60,7 +60,7 @@ function App() {
       .then(() => {
         const user = userService.getUserData();
         if (user) {
-          const userId = user.user_id; 
+          const userId = String(user.user_id);  // Ensure userId is a string
           return beamsClient.addDeviceInterest(userId);
         }
       })

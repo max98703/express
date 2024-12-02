@@ -1,7 +1,7 @@
 import React, { useState, useRef, useContext, useEffect } from "react";
 import { AppContext } from "../../context/AppContext";
 import api from "../../api/api.js";
-
+import useDebounce from "../../hooks/useDebounce.js";  // Import the debounce hook
 const Comment = ({ status, Comments, taskId, fetchTaskDetails }) => {
   const { showAlert } = useContext(AppContext);
   const [isExpanded, setIsExpanded] = useState(false); 
@@ -10,7 +10,9 @@ const Comment = ({ status, Comments, taskId, fetchTaskDetails }) => {
   const [imageUrls, setImageUrls] = useState([]); // Added to store image URLs
   const contentEditableRef = useRef(null);
   const commentsEndRef = useRef(null); // Reference to the bottom of the comments section
+  
 
+  const debouncedComment = useDebounce(comment, 500); // Debounce the comment state
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (
@@ -40,6 +42,7 @@ const Comment = ({ status, Comments, taskId, fetchTaskDetails }) => {
         const reader = new FileReader();
         reader.onloadend = () => {
           const imageUrl = reader.result;
+          setImageUrls((prev) => [...prev, imageUrl]); 
           insertImageToState(imageUrl);
         };
         reader.readAsDataURL(file);
@@ -61,9 +64,10 @@ const Comment = ({ status, Comments, taskId, fetchTaskDetails }) => {
 
   // Add the image URL to the imageUrls state
   const insertImageToState = (imageUrl) => {
-    const imageHtml = `<img src="${imageUrl}" alt="Pasted" style="max-width:100%;margin-top:8px;" />`;
+    const imageHtml = `<img src="${imageUrl}" alt="Pasted" style="width: 500px; height: 250px; margin-top: 6px;" />`;
     setComment((prevContent) => prevContent + imageHtml);
   };
+  
 
   // Handle comment submit
   const handleSubmit = async () => {
@@ -267,23 +271,39 @@ const Comment = ({ status, Comments, taskId, fetchTaskDetails }) => {
 
 
       {/* Comment Input and Submit */}
-      <div className="fixed bottom-0 z-40 w-full bg-gray-100">
-        <div
-          ref={contentEditableRef}
-          contentEditable={true}
-          onInput={handleInputChange}
-          onPaste={handlePaste}
-          onFocus={handleFocus}
-          className={`h-16 p-2 border-2 border-gray-300 bg-blue-50 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2 overflow-auto mt-2 ml-6 w-11/12 right-6 bottom-0 transition-all ease-in-out duration-300 ${
-            isExpanded ? "h-80" : ""
-          }`}
-          style={{
-            wordWrap: "break-word",
-            whiteSpace: "normal",
-            minHeight: "80px",
-          }}
-          dangerouslySetInnerHTML={{ __html: comment }}
-        />
+      <div className="fixed bottom-0 z-40 w-full bg-blue-50">
+      <div
+  ref={contentEditableRef}
+  contentEditable={true}
+  onInput={handleInputChange}
+  onPaste={handlePaste}
+  onFocus={handleFocus}
+  className={`h-16 p-2 border-2 border-gray-300 bg-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2 overflow-auto mt-2 ml-6 w-11/12 right-6 bottom-0 transition-all ease-in-out duration-300 ${
+    isExpanded ? "h-96" : "h-16"
+  }`}
+  placeholder="Add your comment here..."
+  style={{
+    wordWrap: "break-word",
+    whiteSpace: "normal",
+    minHeight: "80px",
+  }}
+>
+  {/* Render image previews inline */}
+  {imageUrls.length > 0 && (
+    <div className="mt-2">
+      {imageUrls.map((url, index) => (
+        <div key={index} className="inline-block mr-2 mb-2">
+          <img
+            src={url}
+            alt={`pasted-image-${index}`}
+            className="w-full h-60 object-cover border rounded"
+          />
+        </div>
+      ))}
+    </div>
+  )}
+</div>
+
         <div className="fixed bottom-4 right-0 p-2 mr-8 flex z-40 items-center">
           <select
             onChange={handleStatusFilterChange}

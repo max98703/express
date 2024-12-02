@@ -17,7 +17,6 @@ const sendLoginEmail = async (user, subscription = null) => {
   const currentDate = new Date();
   const formattedDate = `${currentDate.getFullYear()}/${currentDate.getMonth() + 1}/${currentDate.getDate()}`;
   users= { ...user, geo, date:formattedDate }; // Add the formatted date to the user object
-  console.log(users);
   const mailOptions = {
     from: process.env.GMAIL_USER,
     to: subscription ? users : users.email,
@@ -58,14 +57,23 @@ const getUserByEmail = async (email) => {
   return user;
 };
 
+const hashPassword = async (password) => {
+  const salt = await bcrypt.genSalt(10);
+  const hash = await bcrypt.hash(password, salt);
+  return hash;
+};
+
 const comparePasswords = async (password, hashedPassword) => {
   return bcrypt.compare(password, hashedPassword);
 };
 
 const publishLoginSuccessNotification = async (user) => {
   try {
+    // Ensure user is an array of strings
+    const interests = Array.isArray(user) ? user.map(String) : [String(user)];
+
     const { publishResponse } = await beamsClient.publishToInterests(
-      user,
+      interests, // This is now an array of strings
       {
         web: {
           notification: {
@@ -82,6 +90,7 @@ const publishLoginSuccessNotification = async (user) => {
     throw new Error("Failed to publish notification.");
   }
 };
+
 
 const sendResponse = (res, statusCode, success, message, user = null) => {
   return res.status(statusCode).json({ success, message, user });
@@ -155,6 +164,7 @@ module.exports = {
   publishLoginSuccessNotification,
   sendResponse,
   sendEmailWithReceipt,
+  hashPassword,
   eventLog,
   isSuperAdmin,
 };

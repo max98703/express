@@ -3,71 +3,98 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 //const jwt = require("jsonwebtoken");
-const { generateToken, comparePasswords, sendLoginEmail, publishLoginSuccessNotification, sendResponse, eventLog } = require("../services/service");
+const {
+  generateToken,
+  comparePasswords,
+  sendResponse,
+} = require("../services/service");
 const authenticateUser = require("../middleware/authenticateUser");
 const UserLoginRepository = require("../db/repository/user-repository");
-const {APIError} = require("../utils/app-errors");
-var { generateTokens, sendToken } = require('../utils/tokens.utils');
+var { generateTokens, sendToken } = require("../utils/tokens.utils");
 class AuthRouter {
   constructor() {
     this.router = express.Router();
-   // this.secret = process.env.SECRET_KEY || "some other secret as default";
-    this.userRepository =  UserLoginRepository; 
+    // this.secret = process.env.SECRET_KEY || "some other secret as default";
+    this.userRepository = new UserLoginRepository();
     this.initializeRoutes();
   }
 
   initializeRoutes() {
-    this.router.post("/login", this.login.bind(this),generateTokens, sendToken);
-    this.router.post("/reset-password", authenticateUser, this.resetPassword.bind(this));
+    this.router.post(
+      "/login",
+      this.login.bind(this),
+      generateTokens,
+      sendToken
+    );
+    this.router.post(
+      "/reset-password",
+      authenticateUser,
+      this.resetPassword.bind(this)
+    );
     this.router.post("/checkTokenValidity", this.checkTokenValidity.bind(this));
   }
 
   async login(req, res, next) {
-    const { email, password, id, picture, googleLogin } = req.body;
-    const user = id ? await this.userRepository.getUserByGoogleId(id) : await this.userRepository.getUserByEmail(email);
-    const token = user?.token || generateToken();
-
+    const { email, password, picture,id } = req.body;
+  
     try {
+      // Fetch the user by email
+      const user = await this.userRepository.getUserByEmail(email);
+      const token = user?.token || generateToken();
+  
       if (id) {
-        await (user
-          ? ""
-          : this.userRepository.insertUser({ ...req.body, googleLogin: 1 }, token));
+        // Handle Google login
+        if (!user) {
+          // Insert new Google user if they don't exist
+          await this.userRepository.insertUser(
+            {
+              email,
+              name: req.body.name,
+              picture,
+              googleLogin: 1,
+              token:token
+            }
+          );
+        }
+        // Fetch the inserted or existing Google user details
+        const googleUser = user || (await this.userRepository.getUserByEmail(email));
+  
+        req.auth = {
+          user_id: googleUser.id,
+          name: googleUser.name,
+          email: googleUser.email,
+          token,
+          googleLogin: googleUser.googleLogin,
+          image: googleUser.logo || picture,
+          phoneNumber: googleUser.phoneNumber || null,
+          role: googleUser.admin || null,
+        };
       } else {
+        // Handle normal login
         if (!user || !(await comparePasswords(password, user.password))) {
           return sendResponse(res, 401, false, "Invalid credentials");
         }
+  
+        req.auth = {
+          user_id: user.id,
+          name: user.name,
+          email: user.email,
+          token,
+          googleLogin: user.googleLogin,
+          image: user.logo,
+          phoneNumber: user.phoneNumber || null,
+          role: user.admin || null,
+        };
       }
-
-      req.auth = {
-        id: user?.id || id,
-        name: user?.name || req.body.name,
-        email,
-        token,
-        googleLogin: user?.googleLogin || googleLogin,
-        logo: user?.logo || picture,
-        phoneNumber: user?.phoneNumber || null,
-        admin: user?.admin || null,
-      };
+  
+      // Proceed to the next middleware with the authentication object
       next();
-
-    //  req.session.token = await jwt.sign(payload, this.secret, { expiresIn: 36000 });
-
-      // process.nextTick(async () => {
-      //   try {
-      //     await publishLoginSuccessNotification(payload);
-      //     await sendLoginEmail(payload);
-      //    // await eventLog(req, payload);
-      //   } catch (error) {
-      //     throw new APIError("Something went wrong during post-login actions.", error);
-      //   }
-      // });
-
-   //  return sendResponse(res, 200, true, "Login successful and email sent", req.session.token);
     } catch (error) {
       console.error("Error during login:", error);
       return sendResponse(res, 500, false, "Internal Server Error");
     }
   }
+  
 
   async resetPassword(req, res) {
     const { currentPassword, newPassword, confirmPassword } = req.body;
@@ -78,8 +105,15 @@ class AuthRouter {
     try {
       const user = await this.userRepository.getUserById(id);
       if (!user) return sendResponse(res, 404, false, "User not found.");
-      if (!(await comparePasswords(currentPassword, user.password))) return sendResponse(res, 401, false, "Invalid current password.");
-      if (newPassword !== confirmPassword) return sendResponse(res, 400, false, "New password and confirm password do not match.");
+      if (!(await comparePasswords(currentPassword, user.password)))
+        return sendResponse(res, 401, false, "Invalid current password.");
+      if (newPassword !== confirmPassword)
+        return sendResponse(
+          res,
+          400,
+          false,
+          "New password and confirm password do not match."
+        );
 
       const hashedPassword = await bcrypt.hash(newPassword, 10);
       await this.userRepository.updateUser({ id }, hashedPassword);
@@ -95,13 +129,17 @@ class AuthRouter {
     const { token } = req.body;
     try {
       const user = await this.userRepository.getUserByEmail(token); // Adjust if token is not an email
-      return sendResponse(res, user ? 200 : 401, !!user, user ? undefined : "Invalid token");
+      return sendResponse(
+        res,
+        user ? 200 : 401,
+        !!user,
+        user ? undefined : "Invalid token"
+      );
     } catch (error) {
       console.error("Error during token validation:", error);
       return sendResponse(res, 500, false, "Internal Server Error");
     }
   }
-
 }
 
 module.exports = new AuthRouter().router;
