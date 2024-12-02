@@ -21,6 +21,70 @@
   display: none;
 }
 
+/* CSS for Blinking Circle */
+@keyframes blinkRed {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.blinking-circle {
+ 
+  color: yellow;
+  animation: blinkRed 3s infinite;
+}
+@keyframes bounce {
+  0% {
+    transform: scale(0.95);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.bounce {
+  animation: bounce 0.5s ease forwards;
+}
+
+/* MyCalendar.css */
+.rbc-event {
+  border-radius: 8px !important;
+  padding: 5px !important;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 500;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease-in-out;
+}
+
+.rbc-event:hover {
+  transform: scale(1.05);
+}
+
+.rbc-toolbar {
+  background: white;
+  padding: 10px;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.rbc-time-header-cell {
+  background: #f9fafb;
+  font-weight: 600;
+  text-align: center;
+  color: #374151;
+}
+
+
 /* Hide scrollbar for IE, Edge and Firefox */
 .example {
 -ms-overflow-style: none;  /* IE and Edge */

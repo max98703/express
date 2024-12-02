@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo , useRef} from "react";
 import Activity from "../PullRequest/Activity.jsx";
 import api from "../../api/api.js";
 import MenuItem from "@mui/material/MenuItem";
@@ -7,10 +7,13 @@ import OutlinedInput from "@mui/material/OutlinedInput";
 import InputLabel from "@mui/material/InputLabel";
 import Spinner from "../Spinner/Spinner.jsx";
 import Select, { SelectChangeEvent } from "@mui/material/Select";
-import { FaUserCheck, FaUser, FaFlag, FaPen, FaImage ,FaComment} from 'react-icons/fa'; // Importing React Icons
+import { FaUserCheck, FaUser, FaFlag, FaPen, FaImage ,FaComment,FaFilter} from 'react-icons/fa'; // Importing React Icons
 import { useNavigate } from "react-router-dom";
 import Comment from "./Comment";
 import Note from "./Note.jsx";
+import { userService } from "../../Services/authentication.service";
+import Calender from "./Calender.jsx";
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const [groupedTasks, setGroupedTasks] = useState({
@@ -25,6 +28,7 @@ const Dashboard = () => {
   const [selectedProjects, setSelectedProjects] = useState(null);
   const [selectedMembers, setSelectedMembers] = useState(null);
   const [users, setUsers] = useState();
+  const [loginUser, setloginUser] = useState();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isTaskModalOpen, setTaskModalOpen] = useState(false);
   const [assignees, setAssignees] = useState([]);
@@ -32,6 +36,8 @@ const Dashboard = () => {
   const [projectss, setProjectss] = useState();
   const [taskDetails, setTaskDetails] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const modalRef = useRef(null);
+
   const fetchUserTasks = async () => {
     try {
       const response = await api.get("/user/task/dashboard");
@@ -118,6 +124,9 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
+    const data = userService.getUserData();
+    console.log(data);
+    setloginUser(data);
     fetchUserTasks();
   }, []);
 
@@ -168,7 +177,9 @@ const Dashboard = () => {
   console.log(filteredTasks);
   const renderTaskColumn = (title, tasks, bgColor, textColor) => {
     return (
-      <div className={`w-11/12 py-2 px-2 h-1/6 overflow-y-auto relative`}>
+      <div
+        className={`w-11/12  px-2 mt-3 relative h-[550px] overflow-y-auto example`} // Fixed height and scrollable
+      >
         {/* Task count circle */}
         <div className={`border-t-2 ${getBorderColor(title)} rounded-sm`}>
           <div
@@ -186,14 +197,15 @@ const Dashboard = () => {
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
               fill="currentColor"
-              className="w-4 h-4 mt-1 text-gray-500"
+              className="w-4 h-4 mt-1 text-gray-500 cursor-pointer"
               onClick={() => sortTasksByPriority(title)}
             >
               <path d="M19 3L23 8H20V20H18V8H15L19 3ZM14 18V20H3V18H14ZM14 11V13H3V11H14ZM12 4V6H3V4H12Z"></path>
             </svg>
           </div>
         </div>
-
+  
+        {/* Task items */}
         {tasks.map((task) => (
           <div
             key={task.id}
@@ -202,18 +214,19 @@ const Dashboard = () => {
           >
             {/* Priority Indicator */}
             <div
-              className={`absolute top-0 right-0 text-xs font-semibold px-2 py-1 rounded-tr-sm ${task.priority === "0"
+              className={`absolute top-0 right-0 text-xs font-semibold px-2 py-1 rounded-tr-sm ${
+                task.priority === "0"
                   ? "bg-red-500 text-white"
                   : task.priority === "1"
-                    ? "bg-yellow-500 text-white animate-blink"
-                    : "bg-green-500 text-white animate-blink"
-                }`}
+                  ? "bg-yellow-500 text-white animate-blink"
+                  : "bg-green-500 text-white animate-blink"
+              }`}
             >
               {task.priority === "1"
                 ? "High"
                 : task.priority === "2"
-                  ? "Urgent"
-                  : "Normal"}
+                ? "Urgent"
+                : "Normal"}
             </div>
             <div
               className={`absolute top-0 left-0 text-xs font-semibold px-2 py-1 rounded-tr-sm text-gray-400`}
@@ -227,26 +240,27 @@ const Dashboard = () => {
               </p>
               <div className="inline-block mt-1">
                 <div
-                  className={`text-xs font-semibold flex items-center justify-center p-1 rounded-full ${task.status === "0"
+                  className={`text-xs font-semibold flex items-center justify-center p-1 rounded-full ${
+                    task.status === "0"
                       ? "bg-blue-200 text-blue-800"
                       : task.status === "1"
-                        ? "bg-yellow-200 text-yellow-800"
-                        : task.status === "2"
-                          ? "bg-green-400 text-green-700"
-                          : task.status === "3"
-                            ? "bg-purple-200 text-purple-800"
-                            : "bg-green-200 text-green-800"
-                    }`}
+                      ? "bg-yellow-200 text-yellow-800"
+                      : task.status === "2"
+                      ? "bg-green-400 text-green-700"
+                      : task.status === "3"
+                      ? "bg-purple-200 text-purple-800"
+                      : "bg-green-200 text-green-800"
+                  }`}
                 >
                   {task.status === "0"
                     ? "Assigned"
                     : task.status === "1"
-                      ? "In Progress"
-                      : task.status === "2"
-                        ? "Assigned for Review"
-                        : task.status === "3"
-                          ? "Reviewed"
-                          : "Completed"}
+                    ? "In Progress"
+                    : task.status === "2"
+                    ? "Assigned for Review"
+                    : task.status === "3"
+                    ? "Reviewed"
+                    : "Completed"}
                 </div>
               </div>
             </div>
@@ -254,7 +268,7 @@ const Dashboard = () => {
               {task.description.split(" ").slice(0, 15).join(" ")}
               {task.description.split(" ").length > 15 ? "..." : ""}
             </p>
-
+  
             <div className="flex justify-between text-xs text-gray-500 mb-2">
               <div>
                 <span className="mr-1 font-semibold text-gray-400">
@@ -307,6 +321,7 @@ const Dashboard = () => {
       </div>
     );
   };
+  
 
   const [activeSection, setActiveSection] = useState("tasks"); // Default to 'tasks'
 
@@ -409,12 +424,17 @@ const toggleTaskDetails = () => {
   setTaskDetailVisible(!isTaskDetailVisible); // Toggle task details visibility
 };
 
+const clearFliter = () => {
+  setSelectedProjects("");
+  setAssignees([]);
+  setReviewers([]);
+}
   return (
     <Activity>
       <div className="overflow-x-auto mt-4 bg-white h-full example">
         <div className=" mt-16 w-full flex ">
           {/* Sidebar for Projects */}
-          <div className="w-1/5 bg-white border-r-2 p-2  border-gray-200">
+          <div className="w-1/5 bg-white border-r-2 p-2 h-[650px]  border-gray-200">
             {/* Projects Section */}
             <div className="flex justify-between items-center w-full ">
               <h3 className="text-lg font-semibold text-gray-800 mb-3 mt-2 flex-grow">
@@ -423,9 +443,9 @@ const toggleTaskDetails = () => {
               {activeSection === "tasks" && (
                 <div
                   onClick={() => setIsModalOpen(true)}
-                  className="flex items-center px-3 py-2 0 rounded-full text-gray-600 border  hover:bg-gray-200 -mt-4"
+                  className="flex items-center px-3 py-2 0 rounded-lg text-gray-600 border  hover:bg-gray-200 -mt-4"
                 >
-                  Filter
+                 <FaFilter />  Filter
                 </div>
               )}
             </div>
@@ -523,7 +543,7 @@ const toggleTaskDetails = () => {
                       : ""
                     }`}
                 >
-                  Questions
+                  Calender
                 </li>
               </ul>
             </div>
@@ -576,15 +596,33 @@ const toggleTaskDetails = () => {
             {activeSection === "notes" && (
               <div
                 style={fadeInAnimation}
-                className="p-6 h-full mt-4 w-full  overflow-y-auto example"
+                className="p-6 h-full  w-full  overflow-y-auto example"
               >
                 <Note />
+              </div>
+            )}
+               {activeSection === "questions" && (
+              <div
+                style={fadeInAnimation}
+                className=" h-full  w-full  overflow-y-auto example"
+              >
+                <Calender groupedTasks={groupedTasks} />
               </div>
             )}
           </div>
         </div>
         {isModalOpen && (
-          <div className="fixed inset-0 flex justify-center items-center z-50">
+          <div className="fixed inset-0 flex justify-center items-center z-50"
+          onClick={(e) => {
+            // Close the modal if the click is outside of the modal content
+            if (e.target.id === "modal-overlay") {
+             closeTask();
+            }
+          }}>
+            <div
+      id="modal-overlay"
+      className="absolute inset-0  bg-opacity-50"
+    ></div>
             <div
               className="bg-white rounded-lg shadow-xl w-1/3 h-98 overflow-y-auto p-6 transform transition-transform duration-500 ease-out"
               style={{
@@ -592,7 +630,10 @@ const toggleTaskDetails = () => {
                 transitionDelay: isModalOpen ? "300ms" : "0ms", // Adds a delay when opening
               }}
             >
+              <div className="flex justify-between w-full ">
               <h2 className="text-2xl font-bold mb-6 text-gray-700">Filter</h2>
+              <h2 className="pt-2 underline" onClick={clearFliter}>clear filter</h2>
+              </div>
               <form onSubmit={(e) => e.preventDefault()}>
                 {/* Project */}
                 <div className="mb-3">
@@ -679,7 +720,200 @@ const toggleTaskDetails = () => {
         )}
 
         {isTaskModalOpen && (
+          <>
+            { loginUser.role == "1" ? (
           <div className="fixed inset-0 flex justify-end items-center z-50 top-20 right-2"
+          onClick={(e) => {
+            // Close the modal if the click is outside of the modal content
+            if (e.target.id === "modal-overlay") {
+              setTaskModalOpen(false);
+              setTaskDetails([]); // Clear task details
+              setTaskDetailVisible(false);
+            }
+          }}>
+             <div
+      id="modal-overlay"
+      className="absolute inset-0  bg-opacity-50"
+    ></div>
+            <div
+              className={`realtive  overflow-auto max-h-screen bg-white ${isTaskDetailVisible ? 'w-5/12' : ' w-2/5'
+                } h-full example shadow-xl transform transition-transform duration-500 ease-in-out border-2 rounded-lg border ${isTaskModalOpen ? 'translate-x-0' : 'translate-x-full'
+                }`}
+            >
+            {isLoading ? (
+            <Spinner />
+            ):(
+              <>
+              {/* Modal Header */}
+              <div className="p-3 border-b-2 border-gray-400 flex justify-between items-center">
+                <h5 className="text-2xl text-gray-700 font-bold w-4/5">
+                  #{taskDetails.task_id} || {taskDetails.project_name || 'N/A'}
+                </h5>
+                <label className="inline-flex items-center cursor-pointer pt-2 mr-4 text-gray-500">
+                  comment:
+                    <input
+                      type="checkbox"
+                      checked={isTaskDetailVisible}
+                      onChange={toggleTaskDetails}
+                      className="sr-only peer "
+                    />
+                    <div className="relative w-11 ml-1 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                  </label>
+                  <div
+  className="text-gray-600 hover:text-gray-800 font-bold text-3xl"
+  onClick={() => {
+    setTaskModalOpen(false);
+    setTaskDetails([]); // Clear task details
+    setTaskDetailVisible(false);
+  }}
+>
+  &times;
+</div>
+
+
+              </div>
+              {!isTaskDetailVisible && (
+                  <>
+              {/* Modal Content */}
+              <div className="p-6 space-y-4">
+                {/* Task Title */}
+                <div className="flex justify-between items-center">
+                  <h3 className="text-gray-700 font-bold text-xl">{taskDetails.task_title || 'No title provided'}</h3>
+                </div>
+                {/* Created By & Deadline */}
+                <div className="flex gap-2 items-center mb-4">
+                  <span className="text-md text-gray-600 font-bold">
+                    Created by{' '}
+                    <span className="font-normal text-gray-500 bg-blue-200 p-2 rounded-full">
+                      {taskDetails.createdBy || 'N/A'}
+                    </span>{' '}
+                    || Deadline{' '}
+                    <span className="font-normal">{taskDetails.deadline || 'No deadline'}</span>
+                  </span>
+                </div>
+
+                {/* Priority */}
+                <div className="flex gap-2 items-center">
+                  <h3 className="text-lg font-semibold flex items-center">
+                    <FaFlag className="mr-2 text-gray-500" /> {/* React Icon for Priority */}
+                    Priority:
+                  </h3>
+                  <p
+                    className={`text-white py-1 px-4 rounded-full ${taskDetails.priority === '0'
+                        ? 'bg-gray-400' // Normal - Gray
+                        : taskDetails.priority === '1'
+                          ? 'bg-red-500' // High - Red
+                          : 'bg-yellow-500' // Urgent - Yellow
+                      }`}
+                  >
+                    {taskDetails.priority === '0'
+                      ? 'Normal'
+                      : taskDetails.priority === '1'
+                        ? 'High'
+                        : 'Urgent'}
+                  </p>
+
+                </div>
+
+                {/* Assigner */}
+                <div className="flex gap-2 items-center mb-4">
+                  <h3 className="text-lg font-semibold flex items-center">
+                    <FaUserCheck className="mr-2 text-yellow-500" /> {/* React Icon for Assigner */}
+                    Assignee:
+                  </h3>
+                  <div className="flex items-center">
+                    {taskDetails.collaborators && taskDetails.collaborators.length > 0
+                      ? taskDetails.collaborators
+                        .filter(collaborator => collaborator.collaborator_flag !== 0) // Assigner
+                        .map((collaborator, index) => (
+                          <div key={index}>
+                            <span className="bg-yellow-200  py-2 px-2 rounded-full ml-1">
+                              {collaborator.collaborator_name}
+                            </span>
+                          </div>
+                        ))
+                      : 'No assigner found'}
+                  </div>
+                </div>
+
+                {/* Collaborators */}
+                <div className="flex gap-2 items-center mb-4">
+                  <h3 className="text-lg font-semibold flex items-center">
+                    <FaUser className="mr-2 text-blue-500" /> {/* React Icon for Collaborators */}
+                    Reviwers:
+                  </h3>
+                  <div className="flex items-center space-x-2">
+                    {taskDetails.collaborators && taskDetails.collaborators.length > 0
+                      ? taskDetails.collaborators
+                        .filter(collaborator => collaborator.collaborator_flag == 0) // Regular Collaborators
+                        .map((collaborator, index) => (
+                          <div key={index} className="flex items-center space-x-2">
+                            <span className="bg-blue-200 py-2 px-2 rounded-full ml-1" >
+                              {collaborator.collaborator_name}
+                            </span>
+                          </div>
+                        ))
+                      : 'No collaborators available'}
+                  </div>
+                </div>
+
+                {/* Task Description */}
+
+                <div className="">
+                  <h3 className="text-lg font-semibold flex items-center border-b-2 border-gray-200 mb-2">
+                    <FaPen className="text-gray-500 mr-2" /> {/* Icon for Description */}
+                    Description:
+                  </h3>
+                  <p className=" text-gray-500 border p-2 rounded-lg">{taskDetails.task_description}</p>
+                </div>
+
+
+                {/* Task Attachments */}
+                <h3 className="text-lg font-semibold border-b-2 border-gray-200  flex items-center">
+                <FaImage className="text-gray-500 mr-2" /> 
+                  Attachments:</h3>
+                {taskDetails.task_attachments && taskDetails.task_attachments.length > 0 ? (
+                  <ul className="list-none text-gray-700 grid grid-4 gap-1">
+                    {taskDetails.task_attachments.map((attachment, index) => (
+                      <li key={index}>
+                        <div className="flex items-center space-x-2 border p-2 rounded-full">
+                        <FaImage className="text-blue-500 cursor-pointer" />
+                        <span className="cursor-pointer">
+                          <a
+                            href={`/image/${attachment.attachment_name}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600"
+                          > 
+                            {attachment.attachment_name || 'Unnamed Attachment'}
+                          </a>
+                        </span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-gray-700">No attachments available</p>
+                )}
+              
+              </div>
+              </>
+              
+              )}
+                 {isTaskDetailVisible && (
+              <div >
+              
+                <Comment  status={taskDetails.status} Comments = {taskDetails.activity} taskId={taskDetails.task_id}  fetchTaskDetails ={ fetchTaskDetails }/>
+              </div>
+                 )}
+              </>
+              
+        )}
+            </div>
+          </div>
+            ):(
+              <>
+                <div className="fixed inset-0 flex justify-end items-center z-50 top-20 right-2"
           onClick={(e) => {
             // Close the modal if the click is outside of the modal content
             if (e.target.id === "modal-overlay") {
@@ -867,6 +1101,10 @@ const toggleTaskDetails = () => {
         )}
             </div>
           </div>
+              </>
+
+            )}
+            </>
         )}
 
       </div>
