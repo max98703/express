@@ -25,7 +25,7 @@
       
       The backend exposes a RESTful API for seamless communication with the React frontend.
         Installation
-        Prerequisites
+        Prerequisitess
       Before you start, ensure you have the following installed:
       
       Node.js (v14 or higher)
