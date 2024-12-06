@@ -61,7 +61,7 @@
       Start the backend server:
       
       bash
-      Copy code
+      Copy codes
       npm start
       Frontend Setup
       Navigate to the frontend directory:
