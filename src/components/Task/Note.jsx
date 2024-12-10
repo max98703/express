@@ -124,11 +124,11 @@ const NoteApp = () => {
   };
 
   return (
-    <div className="container mx-auto p-4 h-96">
+    <div className="container mx-auto  h-[70vh] example">
       {/* Floating Add Note Button */}
       <button
         onClick={() => openModal()}
-        className="fixed bottom-6 right-6 bg-green-500 text-white w-12 h-12 rounded-full shadow-lg flex items-center justify-center hover:bg-green-600"
+        className="fixed bottom-6 right-6 bg-green-500 text-white w-12 h-12 rounded-full shadow-lg flex items-center justify-center hover:bg-green-600 "
       >
         +
       </button>

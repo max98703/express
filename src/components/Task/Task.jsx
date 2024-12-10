@@ -156,7 +156,7 @@ const TaskPage = () => {
                   src={`/image/${assignee.user.logo}`}
                   alt={assignee.user.name}
                   className={`w-8 h-8 rounded-full border-2 border-white ${
-                    index > 0 ? "-ml-4 w-12" : ""
+                    index > 0 ? "-pl-12 " : ""
                   }`} // Negative margin for overlap
                 />
                 {index === 2 && filteredAssignees.length > 3 && (
