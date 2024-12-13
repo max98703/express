@@ -10,6 +10,7 @@ import {
   FaTasks,
   FaBars,
   FaUserCircle,
+  FaBell,  // Import the notification icon
 } from "react-icons/fa";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { userService } from "../../Services/authentication.service.js";
@@ -57,14 +58,23 @@ const Activity = ({ children }) => {
           isCompact ? "w-16" : "w-52"
         }`}
       >
+        {!isCompact && (
+          <div className="p-4 bg-black w-full">
+            <img
+              src="/image/ty.jpg"
+              alt="Logo"
+              className="w-20 h-20 bg-blue-100 object-fit rounded-full "
+            />
+          </div>
+        )}
         <div
           onClick={toggleSidebar}
-          className="absolute top-2 left-3 bg-primary-500 text-white rounded-full p-2 cursor-pointer shadow-md"
+          className="absolute top-2 right-3 bg-primary-500 text-white rounded-full p-2 cursor-pointer shadow-md"
         >
           <FaBars className="text-xl" />
         </div>
 
-        <nav className="space-y-2 mt-12">
+        <nav className={`space-y-2 example ${isCompact ? "mt-12" : ""}`}>
           {[
             { to: "/dashboard", icon: <FaTachometerAlt />, label: "Dashboard" },
             { to: "/pr/feed", icon: <FaNewspaper />, label: "Feed" },
@@ -77,12 +87,12 @@ const Activity = ({ children }) => {
               key={link.to}
               to={link.to}
               onClick={() => handleLinkClick(link.to)}
-              className={`flex items-center ${
+              className={`flex items-center py-3 px-4 no-underline ${
                 isCompact ? "justify-center" : "justify-start"
-              } py-3 px-4 no-underline ${
+              } ${
                 activeLink === link.to
                   ? "bg-gray-700 text-primary-500 font-semibold rounded-lg mr-2"
-                  : "hover:bg-gray-800 mr-2 rounded-lg"
+                  : "hover:bg-gray-800 mr-2 rounded-lg no-underline"
               }`}
             >
               {link.icon}
@@ -99,7 +109,7 @@ const Activity = ({ children }) => {
               } py-3 px-4 w-full rounded-lg  ${
                 tasksOpen ? "bg-gray-700 font-semibold text-primary-500" : "hover:bg-gray-800"
               }`}
-            > 
+            >
               <FaTasks />
               {!isCompact && <span className="ml-2">Tasks</span>}
             </button>
@@ -108,7 +118,7 @@ const Activity = ({ children }) => {
                 <Link
                   to="/user/dashboard"
                   onClick={() => handleLinkClick("/user/dashboard")}
-                  className="flex items-center py-2 px-4 text-gray-300 mr-2 hover:bg-gray-700 rounded-lg mt-1"
+                  className="flex items-center py-2 px-4 text-gray-300 mr-2  no-underline hover:bg-gray-700 rounded-lg mt-1"
                 >
                   Dashboard
                 </Link>
@@ -120,8 +130,8 @@ const Activity = ({ children }) => {
                   Task
                 </Link>
                 <Link
-                  to="/tasks/project"
-                  onClick={() => handleLinkClick("/tasks/project")}
+                  to="/projects"
+                  onClick={() => handleLinkClick("/projects")}
                   className="flex items-center py-2 px-4 text-gray-300 hover:bg-gray-700 mr-2 rounded-lg"
                 >
                   Project
@@ -140,7 +150,7 @@ const Activity = ({ children }) => {
       >
         {/* Top Bar */}
         <div
-          className={`fixed top-0 right-0 bg-white p-3 z-40 flex items-center border-b-2 border-gray-300 transition-all duration-300 ${
+          className={`fixed top-0 right-0 bg-white p-3 z-40 flex items-center border-b-2 border-gray-300 transition-all duration-300 example ${
             isCompact ? "left-16" : "left-52"
           }`}
         >
@@ -155,18 +165,31 @@ const Activity = ({ children }) => {
           <button className="flex items-center px-3 py-2 rounded-full text-gray-600 border hover:bg-gray-200">
             <FaFilter /> Filter
           </button>
-          <div className="relative ml-4">
-            <div
-              onClick={toggleDropdown}
-              className="flex items-center gap-2 py-1 pl-1 pr-3 border rounded-full cursor-pointer"
-            >
-              <div className="flex items-center justify-center rounded-full w-8 h-8 bg-primary-800">
-                <FaUserCircle className="text-lg h-8 w-8" />
-              </div>
-              <span>{users ? users.name : null}</span>
-            </div>
+          <div className="relative ml-4 flex gap-2">
+          <FaBell className="text-2xl ml-2 cursor-pointer mt-2" /> {/* Notification Icon */}
+          <div
+  onClick={toggleDropdown}
+  className="flex items-center gap-2 py-1 pl-1 pr-3 border rounded-full cursor-pointer"
+>
+  <div className="flex items-center justify-center rounded-full w-8 h-8 overflow-hidden bg-primary-800">
+    {users && users.image ? (
+      <img
+        src={`/image/${users.image}`}
+        alt="User Logo"
+        className="w-full h-full object-cover"
+      />
+    ) : (
+      <div className="bg-gray-300 w-full h-full flex items-center justify-center">
+        {/* Placeholder if no user logo exists */}
+        <span className="text-gray-500 text-sm">No Image</span>
+      </div>
+    )}
+  </div>
+  <span>{users ? users.name : null}</span>
+</div>
+
             {dropdownOpen && (
-              <div className="absolute z-10 w-48 bg-white border rounded-lg shadow-lg right-1 mt-2">
+              <div className="absolute z-10 w-48 bg-white border rounded-lg shadow-lg right-1 mt-11">
                 <Link
                   to="/profile"
                   className="flex items-center gap-3 py-2 px-4 hover:bg-gray-100 no-underline"

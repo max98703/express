@@ -27,6 +27,7 @@ import * as PusherPushNotifications from "@pusher/push-notifications-web";
 import Logins from "./components/PullRequest/AdminLogin";
 import Project from "./components/Project/Project";
 import TaskDetail from "./components/TaskDetail/TaskDetail";
+import Otp from "./components/2fa/Otp";
 
 const PrivateRoute = ({ element }) => {
   return userService.loggedIn() ? (
@@ -78,6 +79,7 @@ function App() {
     <Route path="/chat" element={<PrivateAdmin element={<CustomerCare />} />} />
     <Route path="/feed" element={<PrivateAdmin element={<Feed />} />} />
     <Route path="/login" element={<Login />} />
+    <Route path="/2fa/otp" element={<Otp />} />
     <Route path="/pr/feed" element={<PrivateAdmin element={<PrFeed />} />} />
     <Route path="/dashboard" element={<PrivateAdmin element={<Dashboard />} />} />
     <Route path="/pr" element={<PrivateAdmin element={<Pr />} />} />

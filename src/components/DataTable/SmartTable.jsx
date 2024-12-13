@@ -10,7 +10,7 @@ const SmartTable = ({ data, columns }) => {
   );
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [currentPage, setCurrentPage] = useState(1);
-  const rowsPerPage = 6;
+  const rowsPerPage = 8;
   const [statusFilter, setStatusFilter] = useState(''); 
   const handleSort = (columnKey) => {
     let direction = 'asc';
@@ -189,9 +189,10 @@ const SmartTable = ({ data, columns }) => {
   };
 
   return (
-    <div className="overflow-x-auto bg-white border border-blue-100 w-full   dark:bg-gray-800">
+    <div className="overflow-x-auto bg-white border border-blue-100 w-full  dark:bg-gray-800">
       <div className="flex justify-between items-center p-3 space-x-4">
       <div className="flex items-center space-x-3">
+      {window.location.pathname === '/task' && (
     <div className="flex items-center space-x-2">
       <label className="text-gray-400 font-medium">View by:</label>
       <select
@@ -208,7 +209,9 @@ const SmartTable = ({ data, columns }) => {
         <option value="Closed">Closed</option>
       </select>
     </div>
+      )}
   </div>
+  
         <div className="flex items-center space-x-3 mr-3">
         <input
           type="text"
@@ -219,7 +222,7 @@ const SmartTable = ({ data, columns }) => {
         />
         <p className=' text-gray-300 h-8 bg-gray-300'> | </p>
           <div className="relative">
-            <FiCalendar className="cursor-pointer text-gray-200" size={30} />
+            <FiCalendar className="cursor-pointer text-black" size={30} />
             <input
               type="date"
               value={dateRange.start}
@@ -227,9 +230,9 @@ const SmartTable = ({ data, columns }) => {
               className="absolute top-0 left-0 opacity-0 w-full h-full cursor-pointer"
             />
           </div>
-          <span className='text-blue-200 text-bold'>to</span>
+          <span className='text-black text-bold'>to</span>
           <div className="relative">
-            <FiCalendar className="cursor-pointertext-blue-200 text-gray-200" size={30} />
+            <FiCalendar className="cursor-pointertext-blue-200 text-black" size={30} />
             <input
               type="date"
               value={dateRange.end}
@@ -240,9 +243,9 @@ const SmartTable = ({ data, columns }) => {
           <div className="flex items-center space-x-4">
           <button
             onClick={exportToCSV}
-            className="flex items-center px-4 py-2 text-gray-400 rounded-full hover:bg-green-600 border-2 border-gray-100"
+            className="flex items-center px-4 py-2 text-white rounded-full hover:bg-gray-700 border-2 border-gray-100 bg-black"
           >
-            <FiDownload className="mr-2 text-gray-400" />
+            <FiDownload className="mr-2 text-white" />
             Export
           </button>
         </div>

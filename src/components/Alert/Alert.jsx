@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 
-const Alert = ({ message, type = 'success', onClose, duration = 3000 }) => {
+const Alert = ({ message, type = 'success', onClose, duration = 2000 }) => {
   useEffect(() => {
     if (message) {
       const timer = setTimeout(() => {
@@ -15,18 +15,19 @@ const Alert = ({ message, type = 'success', onClose, duration = 3000 }) => {
 
   return (
     <div
-      className={`fixed top-8 left-1/2 transform -translate-x-1/2 flex items-center z-50 w-1/4 gap-2 transition-all bg-${type === 'success' ? 'green-600' : 'red-600'} rounded-md shadow-md p-2`}
+      className={`fixed top-8 left-1/2 transform -translate-x-1/2 flex items-center z-50 gap-2 transition-all max-w-xs sm:max-w-sm md:max-w-md w-auto p-3 rounded-md shadow-md 
+        ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`}
       role="alert"
     >
-      <div className="flex items-center justify-center w-8 h-8 text-white border rounded-full shadow-md bg-white ">
+      <div className="flex items-center justify-center w-8 h-8 text-white border rounded-full shadow-md bg-white">
         {type === 'success' ? (
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
             strokeWidth="3"
-            stroke="currentColor"
-            className="w-5 h-5 text-green-600"
+            stroke="currentColor" 
+            className="w-5 h-5 text-green-600"  
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
           </svg>
@@ -34,7 +35,7 @@ const Alert = ({ message, type = 'success', onClose, duration = 3000 }) => {
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
-            className="w-5 h-5 text-red-600"
+            className="w-5 h-5 text-green-600"
             strokeWidth="3"
             fill="currentColor"
           >
@@ -42,11 +43,11 @@ const Alert = ({ message, type = 'success', onClose, duration = 3000 }) => {
           </svg>
         )}
       </div>
-      <span className="text-sm font-semibold text-white">{message}</span>
+      <span className="text-sm font-semibold text-white ">{message}</span>
 
-      <button 
-        onClick={onClose} 
-        className="flex items-center justify-center w-8 h-8  ml-auto hover:bg-gray-200 focus:outline-none"
+      <button
+        onClick={onClose}
+        className="flex items-center justify-center w-8 h-8 ml-auto hover:bg-gray-200 focus:outline-none"
         aria-label="Close Alert"
       >
         <svg
@@ -54,7 +55,7 @@ const Alert = ({ message, type = 'success', onClose, duration = 3000 }) => {
           viewBox="0 0 24 24"
           strokeWidth="3"
           stroke="currentColor"
-          className="w-5 h-5 text-green-600"
+          className="w-5 h-5 text-white"
         >
           <path d="M11.9997 10.5865L16.9495 5.63672L18.3637 7.05093L13.4139 12.0007L18.3637 16.9504L16.9495 18.3646L11.9997 13.4149L7.04996 18.3646L5.63574 16.9504L10.5855 12.0007L5.63574 7.05093L7.04996 5.63672L11.9997 10.5865Z" />
         </svg>

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import socket from "./socket";
 import Callee from "./Callee";
 import api from "../../api/api";
+import { FaVideo } from "react-icons/fa"; 
 const DropCallIcon = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -179,9 +180,15 @@ const Videocall = ({ user, data }) => {
 
   return (
     <>
-      <div onClick={() => startVideoCall(user.id)}>start video call </div>
+      <div 
+        className="text-gray-400 cursor-pointer flex items-center justify-center hover:text-gray-200 transition mr-2 duration-200" 
+        onClick={() => startVideoCall(user.id)}
+      >
+        <FaVideo className="text-2xl" /> {/* Video call icon */}
+      </div>
+
       {isCalling && (
-        <div className="flex flex-col items-center justify-center h-screen bg-gray-800 p-4">
+        <div className="flex flex-col items-center justify-center h-screen bg-gray-800 p-4 ">
           {/* Conditionally render ringing or video elements */}
           {isCalling && (
             <div className="flex flex-col items-center justify-center bg-gray-900 p-8 w-full h-full pt-44 rounded-md shadow-lg">

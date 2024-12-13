@@ -1,61 +1,55 @@
 import React, { useState, useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import socket from "../CustomerCare/socket";
 import { AppContext } from "../../context/AppContext";
 import { useGoogleLogin } from "@react-oauth/google";
 import axios from "axios";
 
 const Logins = () => {
-  const { login } = useAuth();
+  const { login, googlylogin } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false); // Loading state for normal login
-  const [googleLoading, setGoogleLoading] = useState(false); // Loading state for Google login
+  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const navigate = useNavigate();
   const { showAlert } = useContext(AppContext);
 
-  // Handle normal login
   const handleLogin = async (e) => {
     e.preventDefault();
-
-    if (!username || !password) {
-      showAlert("Email and password are required.", "error");
-      return;
-    }
-
     setLoading(true);
     try {
-      const response = await fetch("http://localhost:5000/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: username, password: password }),
-      });
-
-      const result = await response.json();
-      if (response.ok) {
-        localStorage.setItem("id_token", result.token);
-        socket.emit("register_session", { token: result.token });
+      if (!username || !password) {
+        showAlert("Email and password are required.", "error");
+        return;
+      }
+      const response = await login({ email: username, password: password });
+      console.log(response.data);
+      if(response?.data?.redirectToOtp){
+        console.log('max');
+        navigate("/2fa/otp",{ state: { userDetails: response.data.user }})
+      }
+      if (response.data.success) {
+        localStorage.setItem("id_token", response.data.user);
         navigate("/user/dashboard");
         showAlert(result.message, "success");
-      } else {
-        showAlert(result.message, "error");
       }
     } catch (error) {
-      showAlert("An error occurred. Please try again later.", "error");
+      console.log(error);
+      showAlert(error?.response?.data?.message, "error");
     } finally {
+      setUsername("");
+      setPassword("");
       setLoading(false);
     }
   };
 
-  // Google login logic
   const logn = useGoogleLogin({
+    clientId:
+      "697486615012-c4p3q96elor2om5esdvt3o1bstqtnruq.apps.googleusercontent.com", 
     onSuccess: async (response) => {
       setGoogleLoading(true);
       try {
         const { access_token } = response;
-
-        // Fetch user info from Google
         const userInfo = await axios.get(
           `https://www.googleapis.com/oauth2/v1/userinfo?access_token=${access_token}`,
           {
@@ -65,109 +59,110 @@ const Logins = () => {
             },
           }
         );
-        login(userInfo.data);
+        googlylogin(userInfo.data);
+        navigate("/user/dashboard");
       } catch (error) {
-        console.error("Google login error:", error);
         showAlert("Google login failed. Please try again later.", "error");
       } finally {
         setGoogleLoading(false);
       }
     },
     onError: (error) => {
-      console.error("Google Login Failed:", error);
       showAlert("Google login failed. Please try again later.", "error");
+    },
+    onClick: () => {
+      const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?scope=email&response_type=token&redirect_uri=http://localhost:3000/callback`;
+      window.open(googleAuthUrl, "_blank", "width=500,height=600");
     },
   });
 
   return (
-    <div className="min-h-screen flex bg-gray-100">
-      <div className="flex w-full bg-white rounded-lg shadow-lg">
-        <div className="w-1/2 h-full bg-cover bg-center rounded-l-lg bg-red-200">
-          <img
-            src="/image/yt.jpg"
-            className="w-full h-full bg-inherit object-cover"
-            alt="background"
-          />
+    <div
+      className="min-h-screen flex items-center justify-center"
+      style={{
+        backgroundImage: "url('/image/task111.png')", // Replace with correct path to task111 image
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
+    >
+      <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-8">
+        <h1 className="text-2xl font-bold text-gray-800 text-center mb-4">
+          Task Management Login
+        </h1>
+        <p className="text-gray-600 text-center mb-6">
+          Hey, enter your details to get signed into your account
+        </p>
+        <form className="space-y-4" onSubmit={handleLogin}>
+          <div>
+            <label
+              htmlFor="username"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Email
+            </label>
+            <input
+              type="email"
+              id="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              placeholder="Enter Email / Phone No"
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Password
+            </label>
+            <input
+              type="password"
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              placeholder="Enter your Password"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className={`w-full py-2 text-white ${
+              loading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-500"
+            } rounded-md`}
+          >
+            {loading ? "Signing in..." : "Sign in"}
+          </button>
+        </form>
+        <div className="mt-6 text-center text-gray-500">OR</div>
+        <div className="flex gap-4 mt-4">
+          <button
+            onClick={logn}
+            disabled={googleLoading}
+            className=" p-3  text-white bg-red-500 hover:bg-red-400 rounded-md"
+          >
+            {googleLoading
+              ? "Signing in with Google..."
+              : "Sign in with Google"}
+          </button>
+          <a
+            href="http://localhost:5050/auth/facebook"
+            style={{ textDecoration: "none" }}
+          >
+            <button className="w-full p-3 flex items-center justify-center text-white bg-blue-600 hover:bg-blue-500 rounded-md">
+              Login with Facebook
+            </button>
+          </a>
         </div>
-
-        <div className="w-1/2 p-8 flex flex-col justify-center">
-          <h1 className="text-4xl font-bold text-blue-800 p-8">Login</h1>
-
-          <form className="space-y-6 ml-8" onSubmit={handleLogin}>
-            <div>
-              <label htmlFor="username" className="block text-md font-medium text-gray-700">
-                Email
-              </label>
-              <input
-                type="email"
-                id="username"
-                value={username}
-                name="email"
-                onChange={(e) => setUsername(e.target.value)}
-                className="w-full px-4 py-2 mt-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="block text-md font-medium text-gray-700">
-                Password
-              </label>
-              <input
-                type="password"
-                id="password"
-                value={password}
-                name="password"
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2 mt-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div className="flex gap-4">
-              <button
-                type="submit"
-                disabled={loading}
-                className={`w-60 py-2 px-4 ${
-                  loading ? "bg-gray-400" : "bg-blue-800 hover:bg-blue-600"
-                } text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
-              >
-                {loading ? (
-                  <div className="flex items-center justify-center">
-                    <svg
-                      className="animate-spin h-5 w-5 mr-2 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                      ></path>
-                    </svg>
-                    Processing...
-                  </div>
-                ) : (
-                  "Login"
-                )}
-              </button>
-
-              <button
-                type="button"
-                onClick={logn}
-                disabled={googleLoading}
-                className="inline-flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-700 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-              >
-                {googleLoading ? "Signing in with Google..." : "Sign in with Google 🚀"}
-              </button>
-            </div>
-          </form>
+        <div className="mt-6 text-sm text-center text-gray-600">
+          Don’t have an account?{" "}
+          <a
+            href="#"
+            className="text-blue-600 hover:text-blue-500 font-semibold"
+          >
+            Request Now
+          </a>
         </div>
       </div>
     </div>

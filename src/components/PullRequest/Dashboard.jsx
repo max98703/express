@@ -135,6 +135,7 @@ const Dashboard = () => {
             </div>
           </header>
           <div className="min-w-52">
+          <div className="relative h-[600px] w-full">
           {isLoading ? (
             <Spinner />
           ) : error ? (
@@ -165,10 +166,10 @@ const Dashboard = () => {
               </p>
             </div>
           )}
-
+</div>
           {/* Table for overall performance data */}
           {performanceData.length > 0 && (
-            <div className="mt-6 overflow-x-auto">
+            <div className="overflow-x-auto">
               <h3 className="text-lg font-semibold">Overall Collaborator Performance</h3>
               <table className="min-w-full mt-2 bg-white border border-gray-300">
                 <thead>

@@ -38,7 +38,8 @@ const transporter = nodemailer.createTransport({
 const sequelize = new Sequelize(config.database, config.username, config.password, {
   host: config.host,
   dialect: config.dialect,
-  pool: config.pool
+  pool: config.pool,
+  timezone: 'Asia/Kathmandu',
 });
 
 // Authenticate the connection
@@ -58,9 +59,11 @@ const beamsClient = new PushNotifications({
 
 const storage = multer.diskStorage({
   destination: path.join(__dirname, "../../public/image"),
-  filename: (req, file, cb) => cb(null, `${Date.now()}${path.extname(file.originalname)}`),
+  filename: (req, file, cb) => {
+    const uniqueSuffix = `${Date.now()}${Math.floor(Math.random() * 1000)}`;
+    cb(null, `${uniqueSuffix}${path.extname(file.originalname)}`);
+  },
 });
-
 const upload = multer({ 
   storage, 
   limits: { fileSize: 3000000 } 

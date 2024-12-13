@@ -13,6 +13,7 @@ import io
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 import mysql.connector
+from mysql.connector import pooling
 import requests
 from werkzeug.security import check_password_hash
 import bcrypt
@@ -23,30 +24,40 @@ from pusher_push_notifications import PushNotifications
 load_dotenv()
 
 class Database:
-    def __init__(self, host, user, password, database):
+    def __init__(self, host, user, password, database, pool_size=5):
         self.host = host
         self.user = user
         self.password = password
         self.database = database
+        self.pool_size = pool_size
+        
+        # Create the connection pool
+        self.pool = pooling.MySQLConnectionPool(
+            pool_name="task_pool",
+            pool_size=self.pool_size,
+            host=self.host,
+            user=self.user,
+            password=self.password,
+            database=self.database
+        )
 
     def execute_query(self, query, params=None):
+        # Get a connection from the pool
+        connection = self.pool.get_connection()
+        cursor = connection.cursor(dictionary=True)
+        
         try:
-            connection = mysql.connector.connect(
-                host=self.host,
-                user=self.user,
-                password=self.password,
-                database=self.database
-            )
-            cursor = connection.cursor(dictionary=True)
+            # Execute the query
             cursor.execute(query, params)
             result = cursor.fetchall()
-            connection.commit()
+            connection.commit()  # Ensure changes are committed if any
             return result
         except mysql.connector.Error as err:
+            print(f"Error: {err}")
             return None
         finally:
-            cursor.close()
-            connection.close()
+            cursor.close()  # Close the cursor
+            connection.close()  # Release the connection back to the pool
             
 class PusherClient:
     def __init__(self):
@@ -214,11 +225,9 @@ class MovieApp:
                 "role": user['admin']
             }), 200
         
+ 
         @self.app.route('/tasks/<int:task_id>', methods=['GET'])
         def get_task_details(task_id):
-            # Common function to execute a query and return the result as a list of dicts
-            def execute_and_format_query(query, params):
-                return [{key: value for key, value in row.items()} for row in self.query.execute_query(query, params)]
 
             task_query = """
                 SELECT 
@@ -253,7 +262,9 @@ class MovieApp:
             # 3. Get Task Collaborators
             collaborators_query = """
                 SELECT 
+                    tc.collaborator_id,
                     uc.name AS collaborator_name,
+                    uc.logo AS collaborator_logo,
                     tc.flag AS collaborator_flag
                 FROM task_collaborators tc
                 LEFT JOIN users uc ON tc.collaborator_id = uc.id
@@ -264,9 +275,10 @@ class MovieApp:
             # 4. Get Task Comments
             comments_query = """
                 SELECT
-                    c.comment AS comment_text,
+                    'comment' AS type,
+                    c.comment AS text,
                     cu.name AS user_name,
-                    c.created_at AS comment_created_at,
+                    c.created_at,
                     cu.logo AS user_logo
                 FROM comments c
                 LEFT JOIN users cu ON c.created_by = cu.id
@@ -278,11 +290,12 @@ class MovieApp:
             # 5. Get Task Activity Logs (Status Changes)
             activity_query = """
                 SELECT
-                    tl.previousStatus,
-                    tl.currentStatus,
+                    'activity' AS type,
+                    tl.previousStatus AS previous_status,
+                    tl.currentStatus AS current_status,
                     tl.created_at,
-                    u.logo,
-                    u.name 
+                    u.logo AS user_logo,
+                    u.name AS user_name
                 FROM task_status_logs tl
                 LEFT JOIN users u ON tl.createdBy = u.id
                 WHERE tl.taskId = %s
@@ -290,32 +303,11 @@ class MovieApp:
             """
             logs = self.query.execute_query(activity_query, (task_id,))
 
-            # Combine comments and logs into a single list
-            combined_activity = []
+            # Combine comments and logs
+            combined_activity = comments + logs  # Concatenate both lists
 
-            # Add comments with a type identifier for differentiation
-            for comment in comments:
-                combined_activity.append({
-                    'type': 'comment',
-                    'text': comment['comment_text'],
-                    'user_name': comment['user_name'],
-                    'created_at': comment['comment_created_at'],
-                    'user_logo': comment['user_logo']
-                })
-
-            # Add logs with a type identifier for differentiation
-            for log in logs:
-                combined_activity.append({
-                    'type': 'activity',
-                    'previous_status': log['previousStatus'],
-                    'current_status': log['currentStatus'],
-                    'created_at': log['created_at'],
-                    'user_logo': log['logo'],
-                    'user_name': log['name']
-                })
-
-            # Sort the combined list by created_at in descending order
-            combined_activity = sorted(combined_activity, key=lambda x: x['created_at'], reverse=True)
+            # Sort by created_at in descending order
+            combined_activity.sort(key=lambda x: x['created_at'], reverse=True)
 
             return jsonify({
                 "task_id": task["task_id"],
@@ -330,7 +322,6 @@ class MovieApp:
                 "collaborators": collaborators,  # Return list of collaborators
                 "activity": combined_activity  # Return the combined and sorted activity (comments + logs)
             }), 200
-
 
         @self.socketio.on('connect')
         def handle_connect():
@@ -360,7 +351,9 @@ class MovieApp:
         def handle_message(data):
             token = data.get('token')
             message = data.get('message')
-            target_id = data.get('target_id')
+            target_id = data.get('target_id')  # This might represent `to` or `from`
+            to = data.get('to')  # Recipient ID
+            from_user = data.get('from')  # Sender ID
             files = data.get('files', [])  # List of file data and original names
             file_urls = []
             current_time = datetime.now().strftime('%Y-%m-%d %I:%M %p')
@@ -371,25 +364,23 @@ class MovieApp:
                     file_name = secure_filename(file['name'])  # Make filename safe
                     file_data = file['data']  # Byte-like data
 
-                    # Convert the byte data to a file and save it
-                    file_buffer = io.BytesIO(bytearray(file_data))
-
                     # Define the full path to save the file
                     file_path = os.path.join(self.UPLOAD_FOLDER, file_name)
 
-                    # Save the file to the specified folder
+                    # Save the file directly
                     with open(file_path, 'wb') as f:
-                        f.write(file_buffer.getbuffer())
+                        f.write(bytearray(file_data))
 
                     # Store the file path for future reference
-                    file_urls.append({
-                        'name': file_name
-                    })
-                    
-            # Verify JWT token
+                    file_urls.append({'name': file_name})
+
+            # Verify JWT token (if needed)
             try:
                 decoded = jwt.decode(token, self.app.config['SECRET_KEY'], algorithms=["HS256"])
                 sender_id = decoded['user_id']
+                if sender_id != from_user:
+                    emit('error', {'message': 'Unauthorized sender'}, room=request.sid)
+                    return
             except jwt.ExpiredSignatureError:
                 emit('error', {'message': 'Token expired'}, room=request.sid)
                 return
@@ -398,12 +389,48 @@ class MovieApp:
                 return
 
             # Send the message and file URLs to the target user
-            target_sid = self.active_users.get(target_id)
+            target_sid = self.active_users.get(to)  # Use `to` to fetch the recipient's session ID
             if target_sid:
-                emit('receive_message', {'message': message, 'files': file_urls, 'from': sender_id, 'time':current_time}, room=target_sid)
+                emit('receive_message', {
+                    'message': message,
+                    'files': file_urls,
+                    'from': from_user,
+                    'to': to,
+                    'time': current_time
+                }, room=target_sid)
             else:
                 emit('error', {'message': 'User not active'}, room=request.sid)
-        
+       
+        @self.socketio.on('typing')
+        def handle_typing(data):
+            token = data.get('token')
+            to = data.get('to')  # Recipient ID
+            from_user = data.get('from')  # Sender ID
+            is_typing = data.get('is_typing')  # Boolean: True if typing, False if stopped
+
+            # Verify JWT token (optional)
+            try:
+                decoded = jwt.decode(token, self.app.config['SECRET_KEY'], algorithms=["HS256"])
+                sender_id = decoded['user_id']
+                if sender_id != from_user:
+                    emit('error', {'message': 'Unauthorized sender'}, room=request.sid)
+                    return
+            except jwt.ExpiredSignatureError:
+                emit('error', {'message': 'Token expired'}, room=request.sid)
+                return
+            except jwt.InvalidTokenError:
+                emit('error', {'message': 'Invalid token'}, room=request.sid)
+                return
+
+            # Notify the recipient user
+            target_sid = self.active_users.get(to)
+            if target_sid:
+                emit('typing_status', {
+                    'from': from_user,
+                    'is_typing': is_typing
+                }, room=target_sid)
+
+                
         @self.socketio.on('call_user')
         def handle_call_user(data):
             callee_id = data['calleeId']

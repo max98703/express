@@ -10,13 +10,20 @@ export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
   // const navigate = useNavigate();
   const login = async (data) => {
+    return await api.post("/login", data);
+    
+  };
+
+  const googlylogin = async (data) => {
     try {
       const response = await api.post("/login", data);
       if (response.data.success) {
+        console.log(response.data.user);
         userService.setToken(response.data.user);
         navigate("/user/dashboard");
       }
     } catch (error) {
+      console.log('error',error);
       alert(error.response.data.message);
       console.error("Login error:", error);
       localStorage.removeItem("id_token");
@@ -46,10 +53,14 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const Qrcode = async () => {
-    return await api.get("/Qrcode");
+  const Qrcode = async (userId) => {
+    try {
+      const response = await api.get(`/Qrcode/${userId}`); // Pass userId as a URL parameter
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching QR code:", error);
+    }
   };
-
   return (
     <AuthContext.Provider
       value={{
@@ -58,6 +69,7 @@ export const AuthProvider = ({ children }) => {
         resetPassword,
         setLoading,
         loading,
+        googlylogin,
         Qrcode,
       }}
     >

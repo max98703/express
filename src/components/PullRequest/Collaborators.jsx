@@ -128,9 +128,9 @@ const Collaborators = () => {
   ];
   return (
     <Activity>
-      <div className="overflow-x-auto example mb-12 mt-4">
-        <div className="p-6 mt-4">
-          <header>
+      <div className="overflow-x-auto example  mt-4">
+        <div className="mt-14">
+          <header className="bg-white p-3">
             <div className="flex justify-between gap-5 lg:items-center">
               <div className="flex flex-col">
                 <div className="flex items-center gap-4">
@@ -208,11 +208,13 @@ const Collaborators = () => {
               <p className="font-semibold">{error}</p>
             </div>
           )}
+            <div className="relative h-[600px] w-full ">
           {!isLoading ? (
             <SmartTable data={pullRequests} columns={columns} />
           ) : (
             <Spinner />
           )}
+          </div>
         </div>
 
         {/* Modal for displaying PRs */}
@@ -230,7 +232,7 @@ const Collaborators = () => {
                   Close
                 </button>
               </div>
-
+              <div className="relative h-[400px] w-full ">
               {isPRLoading ? (
                 <Spinner />
               ) : userPRs.length > 0 ? (
@@ -308,6 +310,7 @@ const Collaborators = () => {
                   </p>
                 </div>
               )}
+              </div>
             </div>
           </div>
         )}

@@ -112,8 +112,8 @@ const NoteApp = () => {
 
   const truncateContent = (content) => {
     const words = content.split(" ");
-    if (words.length > 100) {
-      return words.slice(0, 100).join(" ") + "...";
+    if (words.length > 400) {
+      return words.slice(0, 400).join(" ") + "...";
     }
     return content;
   };
@@ -134,7 +134,7 @@ const NoteApp = () => {
       </button>
 
       {/* Notes Listing */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-2">
         {notes.map((note, index) => (
           <div
             key={index}
@@ -168,7 +168,7 @@ const NoteApp = () => {
             {/* Edit Button */}
             <button
               onClick={() => openModal(index)}
-              className="mt-4 bg-blue-500 text-white py-1 px-3 rounded-lg hover:bg-blue-600 block mx-auto"
+              className="mt-14 bg-blue-500 text-white py-1 px-3 rounded-lg hover:bg-blue-600 block mx-auto"
             >
               Edit
             </button>

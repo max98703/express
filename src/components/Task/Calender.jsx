@@ -115,16 +115,17 @@ const MyCalendar = ({ groupedTasks }) => {
     }
   }, [popupTask]);
 
-  const statusMap = {
-    "0": { color: "bg-gray-300", text: "Assigned" },
-    "1": { color: "bg-yellow-300", text: "In Progress" },
-    "2": { color: "bg-blue-300", text: "Assigned For Review" },
-    "3": { color: "bg-green-300", text: "Reviewed" },
-    "4": { color: "bg-blue-300", text: "Completed" },
+  const statusMapping = {
+    "0": { color: "bg-yellow-300", label: "Assigned" },
+    "1": { color: "bg-blue-500 text-white", label: "In Progress" },
+    "2": { color: "bg-green-400 text-white", label: "Assigned For Review" },
+    "3": { color: "bg-gray-500 text-white", label: "Reviewd" },
+    "4": { color: "bg-blue-300 text-white", label: "Completed" },
+    "5": { color: "bg-gree-300 text-white", label: "Closed" },
   };
 
   return (
-    <div className="relative h-[85vh] bg-gray-50 overflow-hidden">
+    <div className=" w-[150vh] h-[85vh] overflow-hidden ">
       <Calendar
         localizer={localizer}
         events={events}
@@ -137,8 +138,6 @@ const MyCalendar = ({ groupedTasks }) => {
         }}
         onSelectEvent={(event) => setPopupTask(event.task)} // Show task details in a popup on click
         style={{
-          position: "relative",
-          height: "100%",
           fontFamily: "Inter, sans-serif",
           color: "#374151",
           boxShadow: "0 4px 10px rgba(0, 0, 0, 0.1)", // Soft shadow around the calendar
@@ -209,9 +208,9 @@ const MyCalendar = ({ groupedTasks }) => {
 
             {/* Task Status */}
             <div
-              className={`flex items-center justify-start ${statusMap[popupTask.status]?.color} text-white px-6 py-3 rounded-full w-max mb-6`}
+              className={`flex items-center justify-start ${statusMapping[popupTask.status]?.color} text-white px-3 py-2 rounded-full w-max mb-6`}
             >
-              <span className="font-semibold text-md">{statusMap[popupTask.status]?.text}</span>
+              <span className="font-semibold text-md">{statusMapping[popupTask.status]?.label}</span>
             </div>
 
             {/* Task Deadline */}

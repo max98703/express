@@ -7,10 +7,10 @@ const projectRepository = require("../db/repository/projectRepository");
 const userRepository = require("../db/repository/user-repository");
 const collaboratorRepository = require("../db/repository/taskCollaboratorRepository");
 const attachmentRepository = require("../db/repository/taskAttachment");
+const taskLogRepository = require("../db/repository/taskLogRepository");
 const { publishLoginSuccessNotification } = require("../services/service");
 const { upload } = require("../db/db");
-const { json } = require("body-parser");
-const { Json } = require("sequelize/lib/utils");
+
 class TaskController {
   constructor() {
     this.taskRepository = new taskRepository();
@@ -18,6 +18,7 @@ class TaskController {
     this.userRepository = new userRepository();
     this.collaboratorRepository = new collaboratorRepository();
     this.attachmentRepository = new attachmentRepository();
+    this.taskLogRepository = new taskLogRepository();
     this.router = express.Router();
     this.initializeRoutes();
   }
@@ -41,7 +42,6 @@ class TaskController {
         this.projectRepository.findAll(),
         this.userRepository.findAll(),
       ]);
-      console.log(tasks);
       res.status(200).json({ tasks, projects, users });
     } catch (error) {
       console.error("Error retrieving task:", error);
@@ -50,22 +50,23 @@ class TaskController {
   }
   
   async edit(req, res) {
-    const {id} = req.params;
+    const { id } = req.params;
     try {
-      const [tasks] = await Promise.all([
-        this.taskRepository.getAllTasksAssociatedToUsers(id)
+      const [tasks, taskLogs] = await Promise.all([
+        this.taskRepository.getAllTasksAssociatedToUsers(id),
+        this.taskLogRepository.findAll({ where: { taskId: id } })
       ]);
   
-      res.status(200).json({ tasks });
+      res.status(200).json({ tasks, taskLogs });
     } catch (error) {
       console.error("Error retrieving task:", error);
       res.status(500).json({ message: "Failed to retrieve task" });
     }
   }
+  
 
   async dashboard(req, res) {
     const { assignee, reviewers, project } = req.query; // Access query params
-    console.log("Assignee:", assignee);  // For debugging
   
     try {
       const userId = req.user.user_id; // Assuming user info is available from session or JWT token
@@ -223,14 +224,13 @@ class TaskController {
 
   async update(req, res) {
     const { id } = req.params;
-    const { deadline, projectId, priority } = req.body;
+    const { deadline, priority } = req.body;
     const t = await sequelize.transaction();
 
     try {
       const updated_by = req.user?.user_id;
-      const assignees = req.body.assignees || "[]";
-      const reviewers = req.body.reviewers || "[]";
-
+      const assignees = Array.isArray(req.body.assignees) ? req.body.assignees : JSON.parse(req.body.assignees || "[]");
+      const reviewers = Array.isArray(req.body.reviewers) ? req.body.reviewers : JSON.parse(req.body.reviewers || "[]");
       // Retrieve existing task by taskId
       const task = await this.taskRepository.findById(id);
       if (!task) {
@@ -242,7 +242,6 @@ class TaskController {
         id,
         {
           deadline,
-          project_id: projectId,
           priority,
           updated_by:req.user.user_id,
         },
@@ -253,14 +252,14 @@ class TaskController {
       const currentCollaborators =
         await this.collaboratorRepository.findByTaskId(id, { transaction: t });
 
-      // Step 2: Separate the assignees and reviewers from current collaborators
+      // Step 2: Separate the assignees and reviewers from current collaborator
       const currentAssignees = currentCollaborators.filter(
-        (collaborator) => collaborator.flag === false
+        (collaborator) => collaborator.flag == "0"
       ); // flag 0 is assignee
       const currentReviewers = currentCollaborators.filter(
-        (collaborator) => collaborator.flag === true
+        (collaborator) => collaborator.flag == "1"
       ); // flag 1 is reviewer
-
+      
       // // Step 3: Remove those who are no longer assignees or reviewers
       const toRemoveAssignees = currentAssignees.filter(
         (collaborator) => !assignees.includes(collaborator.collaborator_id)
@@ -271,8 +270,8 @@ class TaskController {
 
       // // Delete the removed collaborators
       const collaboratorsToDelete = [
-        ...toRemoveAssignees.map((collaborator) => collaborator.id),
-        ...toRemoveReviewers.map((collaborator) => collaborator.id),
+        ...toRemoveAssignees.map((collaborator) => collaborator.collaborator_id),
+        ...toRemoveReviewers.map((collaborator) => collaborator.collaborator_id),
       ];
 
       if (collaboratorsToDelete.length > 0) {
@@ -308,12 +307,11 @@ class TaskController {
           .map((reviewer) => ({
             task_id: id,
             collaborator_id: reviewer,
-            flag: 1, // Reviewer flag
+            flag: 1, // Reviewer fla
             created_by: updated_by,
           })),
       ];
 
-      console.log(newCollaborators);
       // // Bulk create new collaborators
       let createdCollaborators = [];
       if (newCollaborators.length > 0) {
@@ -322,17 +320,17 @@ class TaskController {
         });
       }
 
-      // // Commit the transaction
-      await t.commit();
+   
 
       const collaboratorIds = [
         ...new Set(
           newCollaborators.map((collaborator) => String(collaborator.collaborator_id))
         ),
       ];
-
-      console.log(collaboratorIds);
-      await publishLoginSuccessNotification(collaboratorIds);
+      if (collaboratorIds.length > 0) {
+      
+        await publishLoginSuccessNotification(collaboratorIds);
+      }
 
       const newAssignees = newCollaborators.filter(
         (collaborator) => collaborator.flag === 0
@@ -346,7 +344,7 @@ class TaskController {
       const reviewerEmails = await this.getEmails(
         newReviewers.map((c) => c.collaborator_id)
       );
-      console.log(assigneeEmails, reviewerEmails);
+
       const notificationPromises = [];
 
       // Add notifications for assignees if there are any emails
@@ -369,7 +367,8 @@ class TaskController {
           console.error("Error sending emails:", error)
         );
       }
-      
+
+      await t.commit();
       // // Respond with success
       res
         .status(200)

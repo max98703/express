@@ -38,6 +38,29 @@ const User = sequelize.define('User', {
         allowNull: false,
         defaultValue: Sequelize.NOW
     },
+    token_version: {
+        type: Sequelize.INTEGER,
+        defaultValue: 1,  // Default to 1 for new records
+        allowNull: false
+    },
+     // New fields for 2FA
+     twoFactorSecret: {
+        type: Sequelize.STRING,
+        allowNull: true, // Allow null initially, as 2FA may not be enabled
+    },
+    twoFactorEnabled: {
+        type: Sequelize.BOOLEAN,
+        defaultValue: false, // 2FA is disabled by default
+        allowNull: false,
+    },
+    otp: {
+        type: Sequelize.STRING,
+        allowNull: true, // Allow null, OTP will be generated only if 2FA is enabled
+      },
+      otp_created_at: {
+        type: Sequelize.DATE,
+        allowNull: true, // Allow null until OTP is generated
+      },
 }, {
     tableName: 'users',
     timestamps: false,  // Adds 'createdAt' and 'updatedAt'
