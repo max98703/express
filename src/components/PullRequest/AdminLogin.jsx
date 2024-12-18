@@ -25,7 +25,6 @@ const Logins = () => {
       const response = await login({ email: username, password: password });
       console.log(response.data);
       if(response?.data?.redirectToOtp){
-        console.log('max');
         navigate("/2fa/otp",{ state: { userDetails: response.data.user }})
       }
       if (response.data.success) {
@@ -80,7 +79,7 @@ const Logins = () => {
     <div
       className="min-h-screen flex items-center justify-center"
       style={{
-        backgroundImage: "url('/image/task111.png')", // Replace with correct path to task111 image
+        backgroundImage: "url('/image/dale.png')", // Replace with correct path to task111 image
         backgroundSize: "cover",
         backgroundPosition: "center",
       }}

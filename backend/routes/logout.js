@@ -22,50 +22,87 @@ class LogoutRouter {
     this.router.post("/authenticateToken", this.authenticateToken.bind(this));
     this.router.post("/2fa/enable", this.enableTwoFactor.bind(this));
     this.router.post("/2fa/verify", this.verifyTwoFactor.bind(this));
+    this.router.post("/2fa/disable", this.disableTwoFactor.bind(this));
 
     // Reset Password route
     this.router.post("/resetPassword", this.resetPassword.bind(this));
   }
+  
 
-  async enableTwoFactor(req, res) {
-    const { email } = req.body;
-    const id = 2;
-
+   // Disable 2FA
+   async disableTwoFactor(req, res) {
     try {
       // Fetch user from the database
-      const user = await this.userLoginRepository.findById(id);
+      const user = await this.userLoginRepository.findById(req.user.user_id);
       if (!user) return res.status(404).json({ message: "User not found." });
 
+      // Update 2FA fields
+      user.twoFactorSecret = null; // Set the secret to null
+      user.twoFactorEnabled = 0; // Set 2FA enabled to 0 (disabled)
+      await user.save();
+
+      res.status(200).json({ message: "Two-factor authentication has been disabled." });
+    } catch (error) {
+      console.error("Error disabling 2FA:", error);
+      res.status(500).json({ message: "An error occurred while disabling 2FA." });
+    }
+  }
+
+
+  async enableTwoFactor(req, res) {
+    try {
+      // Fetch user from the database
+      const user = await this.userLoginRepository.findById(req.user.user_id);
+      if (!user) return res.status(404).json({ message: "User not found." });
+  
+      // Check if 2FA is already enabled
+      if (user.twoFactorEnabled) {
+        return res.status(400).json({
+          message: "Two-factor authentication is already enabled for this user.",
+        });
+      }
+  
+      // Check if a secret already exists
+      if (user.twoFactorSecret) {
+        // If a secret exists but 2FA isn't enabled yet, resend the QR code
+        const qrCodeDataURL = await QRCode.toDataURL(
+          speakeasy.otpauthURL({
+            secret: user.twoFactorSecret,
+            label: `MyApp (${req.user.email})`,
+            encoding: "base32",
+          })
+        );
+  
+        return res.status(200).json({
+          message:
+            "Scan this QR code with your authenticator app. Enter the OTP to enable 2FA.",
+          qrCode: qrCodeDataURL,
+        });
+      }
+  
       // Generate a random 1-10 digit number
       const randomDigits = Math.floor(
         Math.random() * 10 ** Math.floor(Math.random() * 10 + 1)
       );
-
+  
       // Combine user email and random digits for the 2FA secret
-      const uniqueKey = `${email}-${randomDigits}`;
-
+      const uniqueKey = `${req.user.email}-${randomDigits}`;
+  
       // Generate a new 2FA secret with the unique key
       const secret = speakeasy.generateSecret({ name: `MyApp (${uniqueKey})` });
-
-      // Save the secret and enable 2FA for the user
+  
+      // Save the secret but do not enable 2FA yet
       user.twoFactorSecret = secret.base32;
       user.twoFactorEnabled = false;
       await user.save();
-
+  
       // Generate a QR code for Google Authenticator
       const qrCodeDataURL = await QRCode.toDataURL(secret.otpauth_url);
-
-      // Generate a 6-digit OTP
-      const otp = speakeasy.totp({
-        secret: secret.base32,
-        encoding: "base32",
-      });
-
+  
       res.status(200).json({
         message:
           "Scan this QR code with your authenticator app. Enter the OTP to enable 2FA.",
         qrCode: qrCodeDataURL,
-        otp: otp, // This is for display, not included in the QR code
       });
     } catch (error) {
       console.error("Error enabling 2FA:", error);
@@ -74,6 +111,7 @@ class LogoutRouter {
         .json({ message: "An error occurred while enabling 2FA." });
     }
   }
+  
 
   async verifyTwoFactor(req, res) {
     const { id, otp } = req.body;
@@ -81,9 +119,8 @@ class LogoutRouter {
     try {
       // Fetch user from the database
       const user = await this.userLoginRepository.findById(id);
-      console.log(user);
       if (!user) return res.status(404).json({ message: "User not found." });
-
+      
       // Verify the OTP
       const isValid = speakeasy.totp.verify({
         secret: user.twoFactorSecret,
@@ -100,7 +137,7 @@ class LogoutRouter {
 
       res.status(200).json({ message: "2FA enabled successfully." });
     } catch (error) {
-      console.error("Error verifying 2FA:", error);
+      console.log("Error verifying 2FA:", error);
       res
         .status(500)
         .json({ message: "An error occurred while verifying 2FA." });

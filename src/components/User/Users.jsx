@@ -52,6 +52,8 @@ const Users = () => {
   // Function to close the modal
   const closeModal = () => {
     setIsModalOpen(false); // Close the modal
+    setOldPassword("");
+    setNewPassword("");
   };
 
   const columns = [

@@ -21,7 +21,7 @@ const MergeModal = ({ pr, onClose, fetchPullRequests, selectedRepo }) => {
       const { message } = response.data;
       console.log(message);
       if (message) {
-        fetchPullRequests();
+        fetchPullRequests(selectedRepo);
         showAlert(message, "success");
       }
     } catch (err) {

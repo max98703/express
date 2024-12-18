@@ -43,7 +43,6 @@ export const AuthProvider = ({ children }) => {
     const formData = new FormData();
     if (data.file) formData.append("myImage", data.file);
     if (data.userName) formData.append("name", data.userName);
-    if (data.phone) formData.append("phone", data.phone);
 
     try {
       return await api.post("/upload-profile-picture", formData);

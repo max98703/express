@@ -84,5 +84,6 @@ function getUserData() {
     const token = getToken();
     if (!token) return null;
     const decodedToken = jwtDecode(token);
+    console.log(decodedToken);
     return decodedToken;
 }

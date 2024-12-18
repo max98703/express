@@ -20,25 +20,24 @@ class UserController {
   
 
   initializeRoutes() {
-    this.router.post('/create-payment-intent', this.uploadProfilePicture.bind(this));
-    this.router.get('/retrieve-subscription/:paymentIntentId', this.getProfile.bind(this));
+    this.router.post('/upload-profile-picture',   upload.single("myImage"), this.uploadProfilePicture.bind(this));
+    this.router.get('/profile', this.getProfile.bind(this));
    // this.router.post('/create-payment-method', this.generateQRCode.bind(this));
     this.router.get('/Qrcode/:userId', this.generateQRCode.bind(this));
     this.router.get('/user', this.users.bind(this));
   }
 
   async uploadProfilePicture(req, res) {
-    const userId = req.user.id;
+    const userId = req.user.user_id;
     const { name, phone } = req.body;
     const { file } = req;
-
     try {
       if (name || phone) {
-        await this.userRepository.updateUserDetails({ name, phoneNumber: phone }, userId);
+        await this.userRepository.update(userId,{ name, phoneNumber: phone }, userId);
       }
 
       if (file) {
-        await this.userRepository.updateProfilePicture(userId, file.filename);
+        await this.userRepository.update(userId, {logo:file.filename});
       } else if (!name && !phone) {
         return sendResponse(res, 400, false, "No file uploaded");
       }
@@ -51,8 +50,8 @@ class UserController {
 
   async getProfile(req, res) {
     try {
-      const userId = req.user.email; // Adjust if email isn't used for fetching user
-      const userProfile = await this.userRepository.getUserByEmail(userId);
+      const userId = req.user.user_id; // Adjust if email isn't used for fetching user
+      const userProfile = await this.userRepository.findById(userId);
       return userProfile
         ? sendResponse(res, 200, true, "Profile fetched successfully", userProfile)
         : sendResponse(res, 404, false, "User profile not found.");

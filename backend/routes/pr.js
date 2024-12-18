@@ -1,7 +1,7 @@
 /* eslint no-undef: "off" */
 const express = require("express");
 const axios = require('axios');
-const GITHUB_TOKEN = "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";
+const GITHUB_TOKEN = "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";
 const OWNER = "max4542";
 
 class PullRequestController {

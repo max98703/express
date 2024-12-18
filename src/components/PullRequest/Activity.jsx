@@ -59,11 +59,11 @@ const Activity = ({ children }) => {
         }`}
       >
         {!isCompact && (
-          <div className="p-4 bg-black w-full">
+          <div className="p-2  px-4 bg-black w-full">
             <img
-              src="/image/ty.jpg"
+              src="/image/tt.png"
               alt="Logo"
-              className="w-20 h-20 bg-blue-100 object-fit rounded-full "
+              className="w-24 h-24 object-fit rounded-full "
             />
           </div>
         )}

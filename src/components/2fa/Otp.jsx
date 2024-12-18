@@ -5,6 +5,8 @@ import { AppContext } from "../../context/AppContext";
 
 const Otp = () => {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [timer, setTimer] = useState(60); // Timer for 60 seconds
+  const [isResendDisabled, setIsResendDisabled] = useState(true); // Disable resend initially
   const location = useLocation();
   const navigate = useNavigate();
   const { showAlert } = useContext(AppContext);
@@ -16,6 +18,18 @@ const Otp = () => {
       navigate("/admin");
     }
   }, [userDetails, navigate]);
+
+  useEffect(() => {
+    if (timer > 0) {
+      const interval = setInterval(() => {
+        setTimer((prev) => prev - 1);
+      }, 1000);
+
+      return () => clearInterval(interval); // Cleanup the interval when the component unmounts or timer reaches 0
+    } else {
+      setIsResendDisabled(false); // Enable resend button after timer reaches 0
+    }
+  }, [timer]);
 
   const handleOtpChange = (e, index) => {
     const value = e.target.value;
@@ -60,6 +74,8 @@ const Otp = () => {
 
       if (response.data.success) {
         showAlert(response.data.message, "success");
+        setTimer(60); // Reset the timer after resend
+        setIsResendDisabled(true); // Disable the resend button
       } else {
         showAlert(response?.data?.message, "error");
       }
@@ -113,13 +129,20 @@ const Otp = () => {
 
           <div className="mt-4 text-center">
             <p className="text-sm text-gray-600">Didn't receive the code?</p>
-            <button
-              type="button"
-              className="text-indigo-600 hover:underline mt-1"
-              onClick={handleResend}
-            >
-              Resend
-            </button>
+            <div className="text-indigo-600 hover:underline mt-1">
+              {timer > 0 ? (
+                <span>{timer} seconds remaining</span>
+              ) : (
+                <button
+                  type="button"
+                  className="text-indigo-600 hover:underline"
+                  onClick={handleResend}
+                  disabled={isResendDisabled}
+                >
+                  Resend
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>

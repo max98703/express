@@ -92,7 +92,7 @@ function App() {
   
     {/* Routes for regular users */}
     <Route path="/" element={<PrivateRoute element={<Home />} />} />
-    <Route path="/profile" element={<PrivateRoute element={<Profile />} />} />
+    <Route path="/profile"element={<PrivateAdmin element={<Profile/>} />} />
     <Route path="/payment" element={<PrivateRoute element={<Payment />} />} />
     <Route path="/paymentproccess" element={<PrivateRoute element={<Paymentproccess />} />} />
     <Route path="/movie/:movieName" element={<PrivateRoute element={<SearchMovie />} />} />

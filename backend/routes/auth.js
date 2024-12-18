@@ -3,12 +3,15 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 //const jwt = require("jsonwebtoken");
+const speakeasy = require("speakeasy");
+
 const {
   generateToken,
   comparePasswords,
   sendResponse,
   sendOtpEmail,
 } = require("../services/service");
+const {generateOtp,verifyOtp}=require("../services/OtpService");
 const authenticateUser = require("../middleware/authenticateUser");
 const UserLoginRepository = require("../db/repository/user-repository");
 var { generateTokens, sendToken } = require("../utils/tokens.utils");
@@ -89,35 +92,17 @@ class AuthRouter {
       // Fetch the user and the stored OTP
       const user = await this.userRepository.findById(userId);
   
-      if (!user || !user.otp) {
-        return res.status(400).json({ success: false, message: 'OTP not found for user.' });
-      }
-
-      if (typeof user.otp_created_at === 'string') {
-        // If it's a string, convert it to a Date object
-        otpCreatedAt = new Date(user.otp_created_at);
-      } else if (user.otp_created_at instanceof Date) {
-        // If it's already a Date object, use it directly
-        otpCreatedAt = user.otp_created_at;
-      } else {
-        // If it's neither a string nor a Date object, log an error
-        console.error("Invalid otp_created_at format");
-        return res.status(400).json({ success: false, message: "Invalid OTP creation time format." });
-      }
+      if (!user) return res.status(404).json({ message: "User not found." });
      
-      const otpExpirationTime = otpCreatedAt.getTime() + 1 * 60 * 1000; // 1 minute = 60000 milliseconds
-      console.log(otpExpirationTime);
-      const currentTime = new Date().getTime();
-      console.log(currentTime);
-      // Check if the OTP has expired
-      if (currentTime > otpExpirationTime) {
-        return res.status(400).json({ success: false, message: 'OTP has expired.' });
-      }
-  
-      // Verify the OTP
-      if (otp !== user.otp) {
-        return res.status(400).json({ success: false, message: 'Invalid OTP.' });
-      }
+      // Calculate OTP expiration time in minutes (1 minute)
+      const isValid = speakeasy.totp.verify({
+        secret: user.twoFactorSecret,
+        encoding: "base32",
+        token: otp,
+        window: 2, // Allow a small time window
+      });
+
+      if (!isValid) return res.status(400).json({ message: "Invalid OTP." });
       
       const token = user?.token || generateToken();
   
@@ -129,7 +114,7 @@ class AuthRouter {
         googleLogin: user.googleLogin || 0,
         image: user.logo || picture,
         phoneNumber: user.phoneNumber || null,
-        role: user.admin || null,
+        role: user.admin ,
         token_version: user.token_version,
         twoFactorEnabled: user.twoFactorEnabled
       };
@@ -177,7 +162,7 @@ class AuthRouter {
         googleLogin: user.googleLogin || 0,
         image: user.logo || picture,
         phoneNumber: user.phoneNumber || null,
-        role: user.admin || null,
+        role: user.admin ,
         token_version: user.token_version,
         twoFactorEnabled: user.twoFactorEnabled
       };
