@@ -128,7 +128,7 @@ const Feed = () => {
 
   return (
     <Activity>
-      <div className="overflow-x-auto example mt-4 bg-gray-100 rounded-md shadow">
+      <div className="overflow-x-auto example mt-4 ">
         <div className="p-6 mt-4">
           <header>
             <div className="flex justify-between gap-5 lg:items-center">
