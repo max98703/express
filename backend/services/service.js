@@ -101,7 +101,7 @@ async function sendOtpEmail(email, otp) {
             <h2>Verify your login</h2>
             <p>Below is your one-time passcode:</p>
             <div class="otp">${otp}</div>
-            <p>It will expire in 5 minutes.</p>
+            <p>It will expire in a minutes.</p>
           </div>
           <div class="footer">
             <p>We're here to help if you need it. Visit the <a href="https://www.ibm.com/security" target="_blank">MAX Support</a> for more info or <a href="mailto:support@ibm.com">contact us</a>.</p>
