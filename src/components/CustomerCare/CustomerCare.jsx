@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import socket from "./socket"; // Import your configured Socket.IO instance
 import Videocall from "./Videocall";
 import { userService } from "../../Services/authentication.service";
 import { v4 as uuidv4 } from "uuid";
 import Activity from "../PullRequest/Activity";
+
 const Chat = () => {
+  const chatContainerRef = useRef(null);
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState("");
   const [username, setUsername] = useState("");
@@ -14,108 +16,157 @@ const Chat = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [files, setFiles] = useState([]);
   const [data, setUser] = useState([]);
+  const [isTyping, setIsTyping] = useState(false);
+  const [typingStatus, setTypingStatus] = useState(false);
+
   useEffect(() => {
     const storedToken = localStorage.getItem("id_token");
-    const data = userService.getUserData();
-    setUser(data);
+    const storedMessages = JSON.parse(localStorage.getItem("messages")) || [];
+    const storedActiveUsers =
+      JSON.parse(localStorage.getItem("activeUsers")) || [];
 
+    const userData = userService.getUserData();
+    setUser(userData);
+    setMessages(storedMessages);
     if (storedToken) {
       setToken(storedToken);
       setIsLoggedIn(true);
       socket.emit("register_session", { token: storedToken });
     }
 
+    setActiveUsers(storedActiveUsers);
+
     socket.on("receive_message", (data) => {
       console.log(data);
-      setMessages((prevMessages) => [...prevMessages, data]);
-    });
-
-    socket.on("error", (data) => {
-      console.error(data.message);
+      setMessages((prevMessages) => {
+        const updatedMessages = [...prevMessages, data];
+        localStorage.setItem("messages", JSON.stringify(updatedMessages)); // Save messages to localStorage
+        return updatedMessages;
+      });
     });
 
     socket.on("update_active_users", (users) => {
       setActiveUsers(users);
+      localStorage.setItem("activeUsers", JSON.stringify(users)); // Save active users to localStorage
     });
+
+    socket.on("typing_status", (data) => {
+      console.log(data);
+      setTypingStatus(data);
+    });
+
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop =
+        chatContainerRef.current.scrollHeight;
+    }
 
     return () => {
       socket.off("receive_message");
-      socket.off("error");
       socket.off("update_active_users");
+      socket.off("typing_status");
     };
   }, []);
 
-  console.log(activeUsers);
-  const handleLogin = async () => {
-    try {
-      const response = await fetch("http://localhost:5000/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username }),
-      });
-
-      const result = await response.json();
-      if (response.ok) {
-        setIsLoggedIn(true);
-        setToken(result.token);
-        localStorage.setItem("id_token", result.token);
-        socket.emit("register_session", { token: result.token });
-      } else {
-        console.error(result.message);
-      }
-    } catch (error) {
-      console.error("Login error:", error);
-    }
-  };
-
-  const handleSendMessage = () => {
-    const filesToSend = [];
-
+  const handleSendMessage = async () => {
     if (files.length > 0) {
-      files.forEach((file) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const arrayBuffer = e.target.result;
-          const timestamp = Date.now();
-          const uniqueId = uuidv4();
-          const newFileName = `${timestamp}_${uniqueId}_${file.name}`;
-          filesToSend.push({
-            name: newFileName,
-            data: new Uint8Array(arrayBuffer),
-          });
-
-          if (filesToSend.length === files.length) {
-            socket.emit("send_message", {
-              message: message,
-              target_id: selectedUser.id,
-              token,
-              files: filesToSend,
+      try {
+        // Process files into the desired format
+        const filesToSend = await Promise.all(
+          files.map((file) => {
+            return new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = (e) => {
+                const arrayBuffer = e.target.result;
+                const timestamp = Date.now();
+                const uniqueId = uuidv4();
+                const newFileName = `${timestamp}_${uniqueId}_${file.name}`;
+                resolve({
+                  name: newFileName,
+                  data: new Uint8Array(arrayBuffer),
+                });
+              };
+              reader.onerror = () => reject(new Error("Failed to read file."));
+              reader.readAsArrayBuffer(file);
             });
-          }
+          })
+        );
+
+        // Emit the message after processing all files
+        const newMessage = {
+          message: message || "", // Default to empty string if no message
+          target_id: selectedUser.id,
+          token,
+          files: filesToSend,
+          from: data.user_id,
+          to: selectedUser.id, // Assuming `selectedUser.id` is the recipient
         };
-        reader.readAsArrayBuffer(file);
-      });
-      setFiles((prevFiles) => [...prevFiles, { files, from: "me" }]);
+
+        socket.emit("send_message", newMessage);
+
+        // Update UI locally
+        setMessages((prevMessages) => {
+          const updatedMessages = [...prevMessages, newMessage];
+          localStorage.setItem("messages", JSON.stringify(updatedMessages));
+          return updatedMessages;
+        });
+
+        // Clear input fields
+        setMessage("");
+        setFiles([]);
+      } catch (error) {
+        console.error("Error sending message with files:", error);
+      }
     } else {
-      socket.emit("send_message", {
-        message: message || "No message",
+      // Send text-only message
+      const newMessage = {
+        message: message.trim() || "No message", // Graceful handling of empty messages
         target_id: selectedUser.id,
         token,
         files: [],
+        from: data.user_id,
+        to: selectedUser.id, // Assuming `selectedUser.id` is the recipient
+      };
+
+      socket.emit("send_message", newMessage);
+
+      // Update UI locally
+      setMessages((prevMessages) => {
+        const updatedMessages = [...prevMessages, newMessage];
+        localStorage.setItem("messages", JSON.stringify(updatedMessages));
+        return updatedMessages;
       });
+
+      // Clear input fields
+      setMessage("");
     }
-    setMessages((prevMessages) => [
-      ...prevMessages,
-      { message, files, from: "me" },
-    ]);
-    setMessage("");
+  };
+
+  const handleTyping = (typing) => {
+    console.log(typing);
+    socket.emit("typing", {
+      token,
+      from: data.user_id,
+      to: selectedUser.id,
+      is_typing: typing,
+    });
+    setIsTyping(typing);
   };
 
   const handleSelectUser = (user) => {
     setSelectedUser(user);
-    setMessages(
-      messages.filter((msg) => msg.from === user.id || msg.to === user.id)
+    localStorage.setItem("selectedUser", JSON.stringify(user)); // Save selected user to localStorage
+
+    // Filter messages for the logged-in user and selected user
+    const filteredMessages = messages.filter(
+      (msg) =>
+        (msg.from === data.user_id && msg.to === user.id) ||
+        (msg.from === user.id && msg.to === data.user_id)
     );
+    setMessages(filteredMessages);
+  };
+  const closeImageModal = () => {
+    setShowModal(false);
+    setModalFiles([]);
   };
 
   const handleFileChange = (event) => {
@@ -133,11 +184,6 @@ const Chat = () => {
     setShowModal(true);
   };
 
-  const closeImageModal = () => {
-    setShowModal(false);
-    setModalFiles([]);
-  };
-
   const truncateFileName = (fileName, maxLength) => {
     if (fileName.length > maxLength) {
       const [name, extension] = fileName.split(".");
@@ -149,42 +195,61 @@ const Chat = () => {
 
   return (
     <Activity>
-      <div className="overflow-x-auto example mt-4 ">
-        <div className=" mt-14">
-          <div className=" fixed left-64 right-0 top-20 bg-white p-3 h-full z-40 flex flex-1 items-center border-b-2 border-gray-300  ">
+      <div className="overflow-x-auto example">
+        <div className=" bg-blue-100">
+          <div className=" fixed left-56 right-3 top-24 bg-white  h-full z-40 flex flex-1 items-center border-b-2 border-gray-300   ">
             <div className="flex flex-1  min-h-full">
-              <aside className="w-1/4 bg-gray-300 p-4 shadow-md ">
+              <aside className="w-64 bg-gray-200 p-4 shadow-md ">
                 <h2 className="text-xl font-bold mb-4">Active Users</h2>
                 <ul>
-                  {activeUsers.map((user) => (
-                    <li
-                      key={user.id}
-                      onClick={() => handleSelectUser(user)} // Pass the whole user object
-                      className={`cursor-pointer p-2 rounded-lg mb-2 ${
-                        selectedUser?.id === user.id
-                          ? "bg-gray-400"
-                          : "hover:bg-gray-200"
-                      }`}
-                    >
-                      <div className="flex items-center">
-                        <div className="w-10 h-10 bg-gray-400 rounded-full mr-3">
-                          <img
-                            className="w-10 h-10 rounded-full"
-                            src={`/image/${user.img}`}
-                            alt={user.username}
-                          />
+                  {activeUsers
+                    .filter((user) => user.id !== data.user_id) // Exclude the current user
+                    .map((user) => (
+                      <li
+                        key={user.id}
+                        onClick={() => handleSelectUser(user)} // Pass the whole user object
+                        className={`cursor-pointer p-2 rounded-lg mb-2 ${
+                          selectedUser?.id === user.id
+                            ? "bg-gray-300"
+                            : "hover:bg-gray-100"
+                        }`}
+                      >
+                        <div className="flex items-center">
+                          <div className="w-10 h-10 bg-gray-400 rounded-full mr-3">
+                            <img
+                              className="w-10 h-10 rounded-full"
+                              src={`/image/${user.img}`}
+                              alt={user.username}
+                            />
+                          </div>
+                          <span>{user.username}</span>
+                          {typingStatus.is_typing &&
+                            typingStatus.from == user.id && (
+                              <div
+                                id="wave"
+                                className="flex items-center space-x-2 mt-2  ml-4 mb-2"
+                              >
+                                {/* Typing Indicator Dots */}
+                                <span className="dot one animate-typingWave delay-200">
+                                  .
+                                </span>
+                                <span className="dot two animate-typingWave delay-400">
+                                  .
+                                </span>
+                                <span className="dot three animate-typingWave delay-600">
+                                  .
+                                </span>
+                              </div>
+                            )}
                         </div>
-                        <span>{user.username}</span>
-                      </div>
-                    </li>
-                  ))}
+                      </li>
+                    ))}
                 </ul>
               </aside>
               <main
-                className="flex-1 flex flex-col bg-white shadow-md  relative
+                className="flex-1 flex flex-col shadow-md bg-white relative
            "
                 style={{
-                  backgroundImage: `url('/image/fffff.jpg')`,
                   backgroundSize: "cover", // Adjusts the image size
                   backgroundPosition: "center", // Centers the image
                   backgroundRepeat: "no-repeat", // Prevents the image from repeating
@@ -192,7 +257,7 @@ const Chat = () => {
               >
                 {selectedUser && (
                   <div
-                    className="h-20 p-2 bg-gray-400 text-white flex items-center justify-between"
+                    className="h-20 p-2 bg-white text-white flex items-center border-b-2 border-gray-200 justify-between "
                     style={{
                       marginTop: "-10px",
                     }}
@@ -205,9 +270,6 @@ const Chat = () => {
                           alt={selectedUser.username}
                         />
                       </div>
-                      {/* <span className="font-bold">
-                  Chatting with {selectedUser.username}
-                </span> */}
                     </div>
                     <div className="font-bold">
                       <Videocall user={selectedUser} data={data} />
@@ -216,123 +278,182 @@ const Chat = () => {
                 )}
 
                 <div
-                  className="flex-1 p-4 overflow-y-auto"
+                  className="flex-1 p-4 overflow-y-auto example"
                   style={{
-                    maxHeight: "calc(100vh - 170px)", // Adjust height dynamically
+                    maxHeight: "calc(100vh - 240px)", // Adjust height dynamically
                   }}
                 >
                   {selectedUser ? (
                     <div>
-                      {messages.map((msg, index) => {
-                        const files = Array.isArray(msg.files) ? msg.files : [];
-                        const images = files.filter((file) =>
-                          /\.(jpeg|jpg|gif|png|svg|webp)$/i.test(file.name)
-                        );
-                        const nonImageFiles = files.filter(
-                          (file) =>
-                            !/\.(jpeg|jpg|gif|png|svg|webp)$/i.test(file.name)
-                        );
-                        return (
-                          <div
-                            key={index}
-                            className={`mb-4 ${
-                              msg.from === "me" ? "text-right " : "text-left"
-                            }`}
-                          >
-                            <span
-                              className={`inline-block max-w-xs p-2 m-1 rounded-lg  leading-1.5  p-2 m-1 rounded-lg border-gray-200 bg-gray-200 rounded-e-xl rounded-es-xl dark:bg-gray-700 text-ms`}
-                            >
-                              {msg.message}
+                      {messages
+                        .filter(
+                          (msg) =>
+                            msg.from === selectedUser?.id ||
+                            msg.to === selectedUser?.id ||
+                            msg.from === data.user_id ||
+                            msg.to === data.user_id
+                        ) // Filter messages for the selected user and current user
+                        .map((msg, index) => {
+                          const files = Array.isArray(msg.files)
+                            ? msg.files
+                            : [];
+                          const images = files.filter((file) =>
+                            /\.(jpeg|jpg|gif|png|svg|webp)$/i.test(file.name)
+                          );
+                          const nonImageFiles = files.filter(
+                            (file) =>
+                              !/\.(jpeg|jpg|gif|png|svg|webp)$/i.test(file.name)
+                          );
 
-                              {msg.files && msg.files.length > 0 && (
-                                <div className="mt-2 ">
-                                  {images.length > 1 ? (
-                                    <div
-                                      className="relative bg-white dark:bg-gray-800 p-2 w-52 rounded-lg shadow-md border dark:border-gray-700 cursor-pointer"
-                                      onClick={() => openImageModal(images)} // Open modal for all images
-                                    >
-                                      <img
-                                        src={`/uploads/${images[1].name}`} // Thumbnail of the third image
-                                        alt={images[1].name}
-                                        className="w-48 h-48 object-cover rounded-lg opacity-60"
-                                      />
-                                      <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg">
-                                        <span className="text-white font-semibold text-lg">
-                                          +{images.length - 1}{" "}
-                                          {/* Display number of additional images */}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <>
-                                      {/* Display the first two images */}
-                                      {images.slice(0, 2).map((file, index) => (
+                          const calculatedWidth = Math.min(
+                            Math.max(msg.message.length * 8, 300), // Base width between 100px and 200px
+                            400
+                          );
+                          return (
+                            <>
+                              <div
+                                key={index}
+                                className={`flex ${
+                                  msg.from === data.user_id
+                                    ? "justify-end"
+                                    : "justify-start"
+                                } mb-2`}
+                              >
+                                <div
+                                  className={`max-w-xs p-2 rounded-lg mt-3 shadow-md ${
+                                    msg.from === data.user_id
+                                      ? "bg-blue-600 text-white"
+                                      : "bg-blue-100 text-gray-800"
+                                  } relative`}
+                                  style={{
+                                    maxWidth: "400px", // Maximum width
+                                    width: `${calculatedWidth}px`, // Dynamic width based on message length
+                                    padding: "8px",
+                                    wordBreak: "break-word", // Ensures long words will break and not overflow
+                                    overflowWrap: "break-word", // Prevents words from spilling out
+                                  }}
+                                >
+                                  {msg.message}
+
+                                  {msg.files && msg.files.length > 0 && (
+                                    <div className="mt-2">
+                                      {/* If there are more than one image, show the thumbnail and open modal */}
+                                      {images.length > 1 ? (
                                         <div
-                                          key={index}
-                                          className="bg-white dark:bg-gray-800 p-2 rounded-lg shadow-md border dark:border-gray-700 cursor-pointer"
+                                          className="relative bg-white dark:bg-gray-800 p-2 w-52 rounded-lg shadow-md border dark:border-gray-700 cursor-pointer"
+                                          onClick={() => openImageModal(images)} // Open modal for all images
                                         >
                                           <img
-                                            src={`/uploads/${file.name}`} // Display image
-                                            alt={file.name}
-                                            className="w-48 h-48 object-cover rounded-lg"
-                                            onClick={() =>
-                                              openImageModal(images)
-                                            } // Open modal for all images
+                                            src={`/uploads/${images[0].name}`} // Thumbnail of the first image
+                                            alt={images[0].name}
+                                            className="w-48 h-48 object-cover rounded-lg opacity-60"
                                           />
+                                          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg">
+                                            <span className="text-white font-semibold text-lg">
+                                              +{images.length - 1}{" "}
+                                              {/* Additional images count */}
+                                            </span>
+                                          </div>
                                         </div>
-                                      ))}
-                                    </>
+                                      ) : (
+                                        // If there are 1 or 2 images, display them directly
+                                        <div className="flex gap-2">
+                                          {images
+                                            .slice(0, 2)
+                                            .map((file, index) => (
+                                              <div
+                                                key={index}
+                                                className="bg-white dark:bg-gray-800 p-2 rounded-lg shadow-md border dark:border-gray-700 cursor-pointer"
+                                              >
+                                                <img
+                                                  src={`/uploads/${file.name}`}
+                                                  alt={file.name}
+                                                  className="w-58 h-48 object-cover rounded-lg"
+                                                />
+                                              </div>
+                                            ))}
+                                        </div>
+                                      )}
+
+                                      {/* Render non-image files */}
+                                      <div className="mt-2">
+                                        {nonImageFiles.map((file, index) => (
+                                          <div
+                                            key={index}
+                                            className="w-52 text-gray-400"
+                                          >
+                                            <a
+                                              href={`/uploads/${file.name}`}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-white underline"
+                                            >
+                                              {truncateFileName(file.name, 20)}
+                                            </a>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
                                   )}
-                                  <div className="mt-2">
-                                    {nonImageFiles.map((file, index) => (
-                                      <div
-                                        key={index}
-                                        className=" w-52 text-gray-400 "
-                                      >
-                                        <a
-                                          href={`/uploads/${file.name}`} // Link for non-image files
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="text-gray-400 underline"
+
+                                  {/* Image modal */}
+                                  {showModal && modalFiles.length > 0 && (
+                                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                                      <div className="relative bg-white rounded-lg p-6">
+                                        <button
+                                          className="absolute top-2 right-2 text-white bg-red-500 rounded-full p-2"
+                                          onClick={closeImageModal} // Function to close modal
                                         >
-                                          {truncateFileName(file.name, 20)}
-                                        </a>
+                                          Close
+                                        </button>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                          {modalFiles.map((file, index) => (
+                                            <div key={index} className="p-2">
+                                              <img
+                                                src={`/uploads/${file.name}`}
+                                                alt={file.name}
+                                                className="w-48 h-48 object-cover"
+                                              />
+                                            </div>
+                                          ))}
+                                        </div>
                                       </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                            </span>
-                            <div className="text-xs m-1 text-gray-600">
-                              {msg.time}
-                            </div>
-                            {/* Modal for viewing all images (only if images exist) */}
-                            {showModal && images.length > 0 && (
-                              <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-                                <div className="relative bg-white rounded-lg p-6">
-                                  <button
-                                    className="absolute top-2 right-2 text-white bg-red-500 rounded-full p-2"
-                                    onClick={closeImageModal} // Function to close modal
-                                  >
-                                    Close
-                                  </button>
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {images.map((file, index) => (
-                                      <div key={index} className="p-2">
-                                        <img
-                                          src={`/uploads/${file.name}`}
-                                          alt={file.name}
-                                          className="w-48 h-48 object-cover"
-                                        />
-                                      </div>
-                                    ))}
-                                  </div>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
-                            )}
+                              <div className="text-xs  text-gray-600">
+                                {msg.time}
+                              </div>
+                            </>
+                          );
+                        })}
+                      {selectedUser &&
+                        typingStatus.is_typing &&
+                        typingStatus.form === selectedUser.user_id && (
+                          <div
+                            id="wave"
+                            className="flex items-center space-x-2 mt-2 mb-2"
+                          >
+                            <span className="srfriendzone">
+                              <span className="srname">
+                                {selectedUser.username}
+                              </span>{" "}
+                              is typing
+                            </span>
+
+                            {/* Typing Indicator Dots */}
+                            <span className="dot one animate-typingWave delay-200">
+                              .
+                            </span>
+                            <span className="dot two animate-typingWave delay-400">
+                              .
+                            </span>
+                            <span className="dot three animate-typingWave delay-600">
+                              .
+                            </span>
                           </div>
-                        );
-                      })}
+                        )}
                     </div>
                   ) : (
                     <div className="text-center text-gray-500">
@@ -342,7 +463,7 @@ const Chat = () => {
                 </div>
 
                 {selectedUser && (
-                  <div className=" bg-gray-200 flex items-center w-11/12  gap-2 ml-12  rounded-full p-2 absolute bottom-20 ">
+                  <div className="bg-gray-200 flex items-center w-11/12 gap-2  m-4 rounded-full p-2 absolute bottom-20">
                     <label htmlFor="file-input" className="cursor-pointer pl-1">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -368,6 +489,8 @@ const Chat = () => {
                     </label>
                     <input
                       type="text"
+                      onFocus={() => handleTyping(true)} // Notify typing start
+                      onBlur={() => handleTyping(false)} // Notify typing stop
                       placeholder="Type a message..."
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
@@ -379,6 +502,8 @@ const Chat = () => {
                     >
                       Send
                     </button>
+
+                    {/* Display the added files */}
                   </div>
                 )}
               </main>

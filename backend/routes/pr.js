@@ -1,7 +1,7 @@
 /* eslint no-undef: "off" */
 const express = require("express");
 const axios = require('axios');
-const GITHUB_TOKEN = "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";
+const GITHUB_TOKEN = "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";
 const OWNER = "max4542";
 
 class PullRequestController {
@@ -59,7 +59,7 @@ class PullRequestController {
     const { pr_number ,selectedRepo} = req.body;
     console.log(req.user.role)
     
-    if (req.user.role == 0) {
+    if (req.user.role == false) {
       return res.status(403).json({ message: "Only superAdmin can merge the pull request" });
     }
 

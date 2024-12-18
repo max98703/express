@@ -27,6 +27,7 @@ import * as PusherPushNotifications from "@pusher/push-notifications-web";
 import Logins from "./components/PullRequest/AdminLogin";
 import Project from "./components/Project/Project";
 import TaskDetail from "./components/TaskDetail/TaskDetail";
+import Otp from "./components/2fa/Otp";
 
 const PrivateRoute = ({ element }) => {
   return userService.loggedIn() ? (
@@ -60,7 +61,7 @@ function App() {
       .then(() => {
         const user = userService.getUserData();
         if (user) {
-          const userId = user.user_id; 
+          const userId = String(user.user_id);  // Ensure userId is a string
           return beamsClient.addDeviceInterest(userId);
         }
       })
@@ -78,6 +79,7 @@ function App() {
     <Route path="/chat" element={<PrivateAdmin element={<CustomerCare />} />} />
     <Route path="/feed" element={<PrivateAdmin element={<Feed />} />} />
     <Route path="/login" element={<Login />} />
+    <Route path="/2fa/otp" element={<Otp />} />
     <Route path="/pr/feed" element={<PrivateAdmin element={<PrFeed />} />} />
     <Route path="/dashboard" element={<PrivateAdmin element={<Dashboard />} />} />
     <Route path="/pr" element={<PrivateAdmin element={<Pr />} />} />
@@ -90,7 +92,7 @@ function App() {
   
     {/* Routes for regular users */}
     <Route path="/" element={<PrivateRoute element={<Home />} />} />
-    <Route path="/profile" element={<PrivateRoute element={<Profile />} />} />
+    <Route path="/profile"element={<PrivateAdmin element={<Profile/>} />} />
     <Route path="/payment" element={<PrivateRoute element={<Payment />} />} />
     <Route path="/paymentproccess" element={<PrivateRoute element={<Paymentproccess />} />} />
     <Route path="/movie/:movieName" element={<PrivateRoute element={<SearchMovie />} />} />

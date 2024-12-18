@@ -3,71 +3,210 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 //const jwt = require("jsonwebtoken");
-const { generateToken, comparePasswords, sendLoginEmail, publishLoginSuccessNotification, sendResponse, eventLog } = require("../services/service");
+const speakeasy = require("speakeasy");
+
+const {
+  generateToken,
+  comparePasswords,
+  sendResponse,
+  sendOtpEmail,
+} = require("../services/service");
+const {generateOtp,verifyOtp}=require("../services/OtpService");
 const authenticateUser = require("../middleware/authenticateUser");
 const UserLoginRepository = require("../db/repository/user-repository");
-const {APIError} = require("../utils/app-errors");
-var { generateTokens, sendToken } = require('../utils/tokens.utils');
+var { generateTokens, sendToken } = require("../utils/tokens.utils");
+const rateLimitMiddleware  = require("../middleware/ratelimit"); 
+
 class AuthRouter {
   constructor() {
     this.router = express.Router();
-   // this.secret = process.env.SECRET_KEY || "some other secret as default";
-    this.userRepository =  UserLoginRepository; 
+    // this.secret = process.env.SECRET_KEY || "some other secret as default";
+    this.userRepository = new UserLoginRepository();
     this.initializeRoutes();
   }
 
   initializeRoutes() {
-    this.router.post("/login", this.login.bind(this),generateTokens, sendToken);
-    this.router.post("/reset-password", authenticateUser, this.resetPassword.bind(this));
+    this.router.post(
+      "/login",
+      rateLimitMiddleware,
+      this.login.bind(this),
+      generateTokens,
+      sendToken
+    );
+    this.router.post(
+      "/reset-password",
+      authenticateUser,
+      this.resetPassword.bind(this)
+    );
+    this.router.post("/verify-otp", rateLimitMiddleware,this.verifyOtp.bind(this), generateTokens,
+    sendToken);
     this.router.post("/checkTokenValidity", this.checkTokenValidity.bind(this));
+    this.router.post("/resend-otp", this.resendOtp.bind(this));
+  }
+  
+
+  async resendOtp(req, res) {
+    const { userId } = req.body;
+  
+    try {
+      // Fetch user by ID
+      const user = await this.userRepository.findById(userId);
+  
+      if (!user) {
+        return res.status(404).json({ success: false, message: "User not found" });
+      }
+  
+      // Generate a new OTP
+      const otp = await this.generateOtp(); // Generate 6-digit OTP
+      const otpCreatedAt = new Date(); // Timestamp for OTP creation
+  
+      // Update OTP and its timestamp in the database
+      await this.userRepository.update(user.id, { otp, otp_created_at: otpCreatedAt });
+  
+      // Send the new OTP to the user's email
+      process.nextTick(async () => {
+        try {
+          await sendOtpEmail(user.email, otp);
+        } catch (error) {
+          console.log("Error sending email:", error);
+        }
+      });
+  
+      return res.status(200).json({
+        success: true,
+        message: "OTP has been resent to your email.",
+      });
+    } catch (error) {
+      console.error("Error resending OTP:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal Server Error",
+      });
+    }
+  }
+
+  async verifyOtp(req,res,next){
+    const { userId, otp } = req.body;
+  
+    try {
+      // Fetch the user and the stored OTP
+      const user = await this.userRepository.findById(userId);
+  
+      if (!user) return res.status(404).json({ message: "User not found." });
+     
+      // Calculate OTP expiration time in minutes (1 minute)
+      const isValid = speakeasy.totp.verify({
+        secret: user.twoFactorSecret,
+        encoding: "base32",
+        token: otp,
+        window: 2, // Allow a small time window
+      });
+
+      if (!isValid) return res.status(400).json({ message: "Invalid OTP." });
+      
+      const token = user?.token || generateToken();
+  
+      const authData = {
+        user_id: user.id,
+        name: user.name,
+        email: user.email,
+        token,
+        googleLogin: user.googleLogin || 0,
+        image: user.logo || picture,
+        phoneNumber: user.phoneNumber || null,
+        role: user.admin ,
+        token_version: user.token_version,
+        twoFactorEnabled: user.twoFactorEnabled
+      };
+      
+      req.auth = authData;
+
+      next();
+    } catch (error) {
+      console.error("Error verifying OTP:", error);
+      res.status(500).json({ success: false, message: 'Error verifying OTP.' });
+    }
   }
 
   async login(req, res, next) {
-    const { email, password, id, picture, googleLogin } = req.body;
-    const user = id ? await this.userRepository.getUserByGoogleId(id) : await this.userRepository.getUserByEmail(email);
-    const token = user?.token || generateToken();
-
+    const { email, password, picture, id, name } = req.body;
+  
     try {
-      if (id) {
-        await (user
-          ? ""
-          : this.userRepository.insertUser({ ...req.body, googleLogin: 1 }, token));
-      } else {
-        if (!user || !(await comparePasswords(password, user.password))) {
-          return sendResponse(res, 401, false, "Invalid credentials");
-        }
+      // Fetch the user by email or initialize variables
+      let user = await this.userRepository.getUserByEmail(email);
+      const token = user?.token || generateToken();
+  
+      if (id && !user) {
+        // Insert new Google user if they don't exist
+        await this.userRepository.insertUser({
+          email,
+          name,
+          picture,
+          googleLogin: 1,
+          token
+        });
+        user = await this.userRepository.getUserByEmail(email); // Fetch newly inserted user
       }
-
-      req.auth = {
-        id: user?.id || id,
-        name: user?.name || req.body.name,
-        email,
+  
+      // Handle normal login
+      if (!id && (!user || !(await comparePasswords(password, user.password)))) {
+        return sendResponse(res, 401, false, "Invalid email or password");
+      }
+  
+      // Prepare user data for the session
+      const authData = {
+        user_id: user.id,
+        name: user.name,
+        email: user.email,
         token,
-        googleLogin: user?.googleLogin || googleLogin,
-        logo: user?.logo || picture,
-        phoneNumber: user?.phoneNumber || null,
-        admin: user?.admin || null,
+        googleLogin: user.googleLogin || 0,
+        image: user.logo || picture,
+        phoneNumber: user.phoneNumber || null,
+        role: user.admin ,
+        token_version: user.token_version,
+        twoFactorEnabled: user.twoFactorEnabled
       };
+  
+      // Handle 2FA if enabled
+      if (!id && authData.twoFactorEnabled) {
+        await this.handleTwoFactorAuth(user);
+        return res.status(200).json({ message: "2FA enabled, please enter the OTP", redirectToOtp: true ,user:{email:authData.email,id:authData.user_id}});
+      }
+  
+      // Attach user authentication data to the request
+      req.auth = authData;
+  
+      // Proceed to the next middleware
       next();
-
-    //  req.session.token = await jwt.sign(payload, this.secret, { expiresIn: 36000 });
-
-      // process.nextTick(async () => {
-      //   try {
-      //     await publishLoginSuccessNotification(payload);
-      //     await sendLoginEmail(payload);
-      //    // await eventLog(req, payload);
-      //   } catch (error) {
-      //     throw new APIError("Something went wrong during post-login actions.", error);
-      //   }
-      // });
-
-   //  return sendResponse(res, 200, true, "Login successful and email sent", req.session.token);
     } catch (error) {
       console.error("Error during login:", error);
       return sendResponse(res, 500, false, "Internal Server Error");
     }
   }
+  
+  // Helper function to handle 2FA logic
+  async handleTwoFactorAuth(user) {
+    const otp = await this.generateOtp(); // Generate a 6-digit OTP
+    const otpCreatedAt = new Date(); // Current timestamp for OTP creation
+  
+    // Update OTP and its timestamp in the database
+    await this.userRepository.update(user.id, { otp, otp_created_at: otpCreatedAt });
+  
+    // Send OTP to user's email
+    process.nextTick(async () => {
+      try {
+        await sendOtpEmail(user.email, otp);
+      } catch (error) {
+        console.log("Error sending email:", error);
+      }
+    });
+  }
+  
+  async generateOtp() {
+    return Math.floor(100000 + Math.random() * 900000).toString();  // Generates a 6-digit OTP
+  }
+
+
 
   async resetPassword(req, res) {
     const { currentPassword, newPassword, confirmPassword } = req.body;
@@ -78,8 +217,15 @@ class AuthRouter {
     try {
       const user = await this.userRepository.getUserById(id);
       if (!user) return sendResponse(res, 404, false, "User not found.");
-      if (!(await comparePasswords(currentPassword, user.password))) return sendResponse(res, 401, false, "Invalid current password.");
-      if (newPassword !== confirmPassword) return sendResponse(res, 400, false, "New password and confirm password do not match.");
+      if (!(await comparePasswords(currentPassword, user.password)))
+        return sendResponse(res, 401, false, "Invalid current password.");
+      if (newPassword !== confirmPassword)
+        return sendResponse(
+          res,
+          400,
+          false,
+          "New password and confirm password do not match."
+        );
 
       const hashedPassword = await bcrypt.hash(newPassword, 10);
       await this.userRepository.updateUser({ id }, hashedPassword);
@@ -95,13 +241,17 @@ class AuthRouter {
     const { token } = req.body;
     try {
       const user = await this.userRepository.getUserByEmail(token); // Adjust if token is not an email
-      return sendResponse(res, user ? 200 : 401, !!user, user ? undefined : "Invalid token");
+      return sendResponse(
+        res,
+        user ? 200 : 401,
+        !!user,
+        user ? undefined : "Invalid token"
+      );
     } catch (error) {
       console.error("Error during token validation:", error);
       return sendResponse(res, 500, false, "Internal Server Error");
     }
   }
-
 }
 
 module.exports = new AuthRouter().router;

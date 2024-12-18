@@ -71,9 +71,9 @@ const PullRequest = () => {
 
   return (
     <Activity>
-      <div className="overflow-x-auto example mt-4 mb-12">
-      <div className="p-6 mt-4">
-        <header className="flex justify-between gap-5 lg:items-center">
+      <div className="overflow-x-auto example mt-4 h-full ">
+      <div className="mt-14">
+        <header className="flex justify-between gap-5 lg:items-center p-3 bg-white">
         <div className="flex items-center gap-4">
         <div className="flex flex-col">
                   <div className="mb-1 text-2xl font-bold text-primary-500 dark:text-gray-300">
@@ -137,7 +137,7 @@ const PullRequest = () => {
             </button>
           </form>
         </header>
-        {error && <p className="text-yellow-700">{error}</p>}
+        <div className="relative h-[600px] w-full ">
         {isLoading ? (
           <Spinner />
         ) : (
@@ -146,6 +146,7 @@ const PullRequest = () => {
             columns={columns}
           />
         )}
+        </div>
         </div>
         {isModalOpen && (
           <MergeModal

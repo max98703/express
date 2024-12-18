@@ -1,56 +1,141 @@
 /* eslint no-undef: "off" */
 
-var jwt = require('jsonwebtoken');
-var customId = require("custom-id");
+const jwt = require("jsonwebtoken");
+const customId = require("custom-id");
 const User_LoginRepository = require("../db/repository/UserLoginRepository");
-const { sendResponse} = require("../services/service");
-var createToken = async function(req) {
- 
-    const token_id = await customId({
-      user_id : req.auth.id,
-      date : Date.now(),
-      randomLength: 4 
-    });
-    var ip = (req.headers['x-forwarded-for'] || '').split(',').pop().trim() || 
-         req.connection.remoteAddress || 
-         req.socket.remoteAddress || 
-         req.connection.socket.remoteAddress
+const { sendLoginEmail, sendResponse } = require("../services/service");
 
-    const user_logins=await User_LoginRepository.findAll({where:{ user_id: req.auth.id ,token_deleted:false, ip_address:ip, device: req.headers["user-agent"]}});
-    user_logins.forEach(async(login) => {
-      if(login){
-        login.token_deleted=true;
-        await login.save()
-      }      
+class LoginService {
+  constructor(req) {
+    this.req = req;
+    this.ip = this.getIpAddress();
+    this.device = req.headers["user-agent"];
+    this.user_id = req.auth.user_id;
+    this.User_LoginRepository = new User_LoginRepository();
+  }
+
+  getIpAddress() {
+    return (
+      (this.req.headers["x-forwarded-for"] || "").split(",").pop().trim() ||
+      this.req.connection.remoteAddress ||
+      this.req.socket.remoteAddress ||
+      this.req.connection.socket.remoteAddress
+    );
+  }
+
+  async generateTokenId() {
+    return customId({
+      user_id: this.user_id,
+      date: Date.now(),
+      randomLength: 4,
     });
-    
-    const token_secret=await customId({
-      token_secret : ip,
-      date : Date.now(),
-      randomLength: 8 
+  }
+
+  async generateTokenSecret() {
+    return customId({
+      token_secret: this.ip,
+      date: Date.now(),
+      randomLength: 8,
+    });
+  }
+
+  async deletePreviousTokens() {
+    const user_logins = await this.User_LoginRepository.findAll({
+      where: { user_id: this.user_id, token_deleted: false, ip_address: this.ip, device: this.device },
     });
 
-    const data = await User_LoginRepository.create({
-      user_id : req.auth.id,
-      token_id : token_id,
-      token_secret : token_secret ,
-      ip_address : ip ,
-      device : req.headers["user-agent"]
+    await Promise.all(user_logins.map(login => {
+      login.token_deleted = true;
+      return login.save();
+    }));
+  }
+
+  async createUserLogin(token_id, token_secret) {
+    await this.User_LoginRepository.create({
+      user_id: this.user_id,
+      token_id,
+      token_secret,
+      ip_address: this.ip,
+      device: this.device,
     });
-    console.log(data);
-    const token_user = { ...req.auth, token_id: token_id  };
-    console.log(token_user)
-    const accessToken = await jwt.sign(token_user, process.env.SECRET);
-    return accessToken;
-};
+  }
+
+  async generateAccessToken(token_id) {
+    const JWT_SECRET = "d471145050e50e93b37eewfrweretfr";  
+  
+    return jwt.sign(
+      { ...this.req.auth, token_id },  
+      JWT_SECRET,  
+      { expiresIn: '1d' }  
+    );
+  }
+  async deleteToken() {
+    const latestLogin = await this.User_LoginRepository.findOne({
+      where: { user_id: this.user_id, token_deleted: false, ip_address: this.ip, device: this.device },
+      order: [["logged_in_at", "DESC"]],
+    });
+
+    if (latestLogin) {
+      latestLogin.logged_out_at = new Date();
+      latestLogin.logged_out = true;
+      await latestLogin.save();
+    }
+  }
+}
 
 module.exports = {
-  generateTokens: async function(req, res, next) {
-      req.token = await createToken(req);
+  generateTokens: async (req, res, next) => {
+    try {
+      const loginService = new LoginService(req);
+
+      const [token_id, token_secret] = await Promise.all([
+        loginService.generateTokenId(),
+        loginService.generateTokenSecret(),
+      ]);
+
+      await loginService.deletePreviousTokens();
+      await loginService.createUserLogin(token_id, token_secret);
+
+      req.token = await loginService.generateAccessToken(token_id);
+
       return next();
+    } catch (error) {
+      console.error("Error in token generation:", error);
+      res.status(500).json({ error: "Internal Server Error" });
+    }
   },
 
-  sendToken: function(req, res) {
-    return sendResponse(res, 200, true, "Login successful and email sent", req.token);
-  }
+  sendToken: (req, res) => {
+    process.nextTick(async () => {
+      try {
+        await sendLoginEmail(req.auth);
+      } catch (error) {
+        console.error("Error sending email:", error);
+      }
+    });
+
+    return sendResponse(res, 200, true, "You are logged in", req.token);
+  },
+  authenticate: (req, res) => {
+    process.nextTick(async () => {
+      try {
+        await sendLoginEmail(req.auth);
+      } catch (error) {
+        console.error("Error sending email:", error);
+      }
+    });
+
+    return sendResponse(res, 200, true, "You are logged in", req.token);
+  },
+
+  deleteTokens: async (req, res) => {
+    try {
+      const loginService = new LoginService(req);
+      await loginService.deleteToken();
+      return sendResponse(res, 200, true, "You are logged out");
+    } catch (error) {
+      console.error("Error in token deletion:", error);
+      res.status(500).json({ error: "Internal Server Error" });
+    }
+  },
 };

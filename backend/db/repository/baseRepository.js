@@ -14,6 +14,7 @@ class BaseRepository {
             throw error;
         }
     }
+
     async create(data) {
         try {
             return await (await this.getModel()).create(data);
@@ -25,6 +26,14 @@ class BaseRepository {
     async findById(id) {
         try {
             return await (await this.getModel()).findByPk(id);
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async findOne(options = {}) {
+        try {
+            return await (await this.getModel()).findOne(options);
         } catch (error) {
             throw error;
         }
@@ -55,7 +64,7 @@ class BaseRepository {
         try {
             const model = await this.getModel(); // Get the model instance
             const rowsDeleted = await model.destroy({ where: { id } });
-            if (!rowsDeleted ) {
+            if (!rowsDeleted) {
                 throw new Error('No rows deleted');
             }
             return rowsDeleted;

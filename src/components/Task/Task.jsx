@@ -12,6 +12,9 @@ import FormControl from "@mui/material/FormControl";
 import Select, { SelectChangeEvent } from "@mui/material/Select";
 import { AppContext } from "../../context/AppContext";
 import { userService } from "../../Services/authentication.service";
+import { FaFileCsv, FaFileWord, FaFilePdf, FaFileAlt } from "react-icons/fa"; // Import icons
+
+import ActivityLog from "./ActivityLog.jsx";
 
 const TaskPage = () => {
   const { showAlert } = useContext(AppContext);
@@ -145,7 +148,7 @@ const TaskPage = () => {
       label: "Assignees",
       render: (row) => {
         const filteredAssignees = row.collaborators.filter(
-          (assignee) => assignee.flag === true
+          (assignee) => assignee.flag == "0"
         );
 
         return (
@@ -156,7 +159,7 @@ const TaskPage = () => {
                   src={`/image/${assignee.user.logo}`}
                   alt={assignee.user.name}
                   className={`w-8 h-8 rounded-full border-2 border-white ${
-                    index > 0 ? "-ml-4 w-12" : ""
+                    index > 0 ? "-pl-12 " : ""
                   }`} // Negative margin for overlap
                 />
                 {index === 2 && filteredAssignees.length > 3 && (
@@ -180,7 +183,7 @@ const TaskPage = () => {
       label: "Reviewers",
       render: (row) => {
         const filteredReviewers = row.collaborators.filter(
-          (reviewer) => reviewer.flag === false
+          (reviewer) => reviewer.flag == "1"
         );
 
         return (
@@ -271,6 +274,7 @@ const TaskPage = () => {
 
   const closeTask = () => {
     setIsModalOpen(false);
+    setFiles([]);
   };
   const fileTypes = [
     "image/jpeg",
@@ -302,9 +306,30 @@ const TaskPage = () => {
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return format(date, "dd-MM-yyyy hh:mm a"); // Format date as d-m-y h:mm AM/PM
+    return new Intl.DateTimeFormat("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    }).format(date);
+  };
+  
+  const handleRemoveFile = (index) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
+
+  const getFileIcon = (type) => {
+    if (type === "text/csv") return <FaFileCsv className="text-green-500 text-7xl" />;
+    if (type === "application/msword" || type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+      return <FaFileWord className="text-blue-500 text-7xl" />;
+    }
+    if (type === "application/pdf") return <FaFilePdf className="text-red-500 text-xl" />;
+    return <FaFileAlt className="text-gray-500 text-7xl" />; // Default icon for other types
+  };
+  
   return (
     <Activity>
       <div className="overflow-x-auto example mt-2 ">
@@ -329,13 +354,13 @@ const TaskPage = () => {
               {data?.role !== 0 && (
                 <button
                   onClick={() => setIsModalOpen(true)}
-                  className="border-2 border-gray-200 rounded-full text-gray-400 px-4 py-2 flex justify-between"
+                  className=" rounded-full bg-black text-white px-4 py-2 flex justify-between"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 24 24"
                     fill="currentColor"
-                    className="w-6 h-6 pr-2"
+                    className="w-6 h-6 pr-2 text-white"
                   >
                     <path d="M11 11V5H13V11H19V13H13V19H11V13H5V11H11Z"></path>
                   </svg>
@@ -343,25 +368,25 @@ const TaskPage = () => {
                 </button>
               )}
               <button
-                className="border-2 border-gray-200  rounded-full text-gray-400 px-4 py-2 flex  justify-between "
+                className=" rounded-full text-white bg-black px-4 py-2 flex  justify-between "
                 onClick={() => openActivity()}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
                   fill="currentColor"
-                  className="w-6 h-6 pr-2"
+                  className="w-6 h-6 pr-2 text-white"
                 >
                   <path d="M3 4H21V6H3V4ZM3 11H21V13H3V11ZM3 18H21V20H3V18Z"></path>
                 </svg>
                 Activity
               </button>
-              <button className="border-2 border-gray-200  rounded-full text-gray-400 px-4 py-2 flex  justify-between ">
+              <button className="  rounded-full text-white bg-black px-4 py-2 flex  justify-between ">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
                   fill="currentColor"
-                  className="w-6 h-6 pr-2"
+                  className="w-6 h-6 pr-2 text-white"
                 >
                   <path d="M5 2H19C19.5523 2 20 2.44772 20 3V22.1433C20 22.4194 19.7761 22.6434 19.5 22.6434C19.4061 22.6434 19.314 22.6168 19.2344 22.5669L12 18.0313L4.76559 22.5669C4.53163 22.7136 4.22306 22.6429 4.07637 22.4089C4.02647 22.3293 4 22.2373 4 22.1433V3C4 2.44772 4.44772 2 5 2ZM18 4H6V19.4324L12 15.6707L18 19.4324V4Z"></path>
                 </svg>
@@ -371,8 +396,19 @@ const TaskPage = () => {
           </header>
 
           {isModalOpen && (
-  <div className="fixed inset-0 bg-gray-600 bg-opacity-50 z-40 flex justify-center example items-center">
-    <div className="bg-white rounded-lg shadow-xl w-2/5 h-4/5 overflow-y-auto example p-6">
+  <div className="fixed inset-0 bg-gray-600 bg-opacity-50 z-40 flex justify-center example items-center"
+  onClick={(e) => {
+    // Close the modal if the click is outside of the modal content
+    if (e.target.id === "modal-overlay") {
+      setIsModalOpen(false);
+      setFiles([]);
+    }
+  }}>
+    <div
+                  id="modal-overlay"
+                  className="absolute inset-0  bg-opacity-50"
+                ></div>
+    <div className="bg-white rounded-lg example w-2/5 h-4/5 overflow-y-auto p-6 relative z-50">
       <h2 className="text-2xl font-bold mb-6 text-gray-700">Add Task</h2>
       <form onSubmit={(e) => e.preventDefault()}>
         {/* Title */}
@@ -446,9 +482,9 @@ const TaskPage = () => {
         </div>
 
         {/* Assignees and Reviewers */}
-        <div className="flex justify-between gap-4">
+        <div className="flex justify-between gap-4 mb-3">
           {/* Assignees */}
-          <div className="mb-5 w-1/2">
+          <div className="w-1/2">
             <label className="block text-gray-600 mb-1">Assignees</label>
             <FormControl sx={{ width: '100%' }}>
               <InputLabel id="assignees-label">Assignees</InputLabel>
@@ -470,7 +506,7 @@ const TaskPage = () => {
           </div>
 
           {/* Reviewers */}
-          <div className="mb-5 w-1/2">
+          <div className="w-1/2 ">
             <label className="block text-gray-600 mb-1">Reviewers</label>
             <FormControl sx={{ width: '100%' }}>
               <InputLabel id="reviewers-label">Reviewers</InputLabel>
@@ -493,7 +529,7 @@ const TaskPage = () => {
         </div>
 
         {/* Attachment */}
-        <div className="mb-5">
+        <div className="mb-2">
           <label className="block text-gray-600 mb-1">Attachment</label>
           <div className="border border-gray-300 rounded-md p-3 bg-gray-50">
             <input
@@ -506,7 +542,32 @@ const TaskPage = () => {
             {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
           </div>
         </div>
-
+        <div className="flex flex-wrap gap-4 mb-2">
+    {files.map((file, index) => (
+      <div key={index} className="relative flex-3 w-24 h-24 border border-gray-300 rounded-md p-2">
+         {file.type.startsWith("image/") ? (
+        <img
+          src={URL.createObjectURL(file)}
+          alt={`Attachment ${index + 1}`}
+          className="object-cover w-full h-full rounded-md"
+        />
+         ): (
+          <div className="flex items-center gap-2 ">
+          {getFileIcon(file.type)}
+        
+        </div>
+        )}
+        <button
+          type="button"
+          onClick={() => handleRemoveFile(index)}
+          className="absolute top-1 right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hover:bg-red-600"
+        >
+          &times;
+        </button>
+      </div>
+    ))}
+  </div>
+        
         {/* Buttons */}
         <div className="flex justify-end gap-3">
           <button
@@ -534,88 +595,11 @@ const TaskPage = () => {
 
         <SmartTable columns={columns} data={tasks} />
         {isActivityOpen && (
-  <div
-    className={`fixed top-24 right-0 h-full w-1/4 bg-white shadow-md z-50 overflow-y-auto example transition-transform duration-300 ease-in-out`}
-    style={{
-      transform: isActivityOpen ? "translateX(0)" : "translateX(100%)",
-    }}
-  >
-    <div className="flex justify-between items-center p-3 border-b">
-      <h2 className="text-lg font-medium text-gray-600">Activity Logs</h2>
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        onClick={closeActivity}
-        fill="currentColor"
-        className="w-6 h-6 text-red-400 cursor-pointer"
-      >
-        <path d="M11.9997 10.5865L16.9495 5.63672L18.3637 7.05093L13.4139 12.0007L18.3637 16.9504L16.9495 18.3646L11.9997 13.4149L7.04996 18.3646L5.63574 16.9504L10.5855 12.0007L5.63574 7.05093L7.04996 5.63672L11.9997 10.5865Z"></path>
-      </svg>
-    </div>
-    <div className="p-3">
-      {activityLogs.length > 0 ? (
-        activityLogs.map((log, index) => {
-          // Define status colors and labels
-          const statusMap = {
-            "0": { color: "bg-gray-300", text: "Assigned" },
-            "1": { color: "bg-yellow-300", text: "In Progress" },
-            "2": { color: "bg-blue-300", text: "Assigned For Review" },
-            "3": { color: "bg-green-300", text: "Reviewd" },
-            "4": { color: "bg-blue-300", text: "Completed" },
-          };
-
-          const prevStatus = statusMap[log.previousStatus] || {
-            color: "bg-gray-300",
-            text: "Unknown",
-          };
-          const currentStatus = statusMap[log.currentStatus] || {
-            color: "bg-gray-300",
-            text: "Unknown",
-          };
-
-          return (
-            <div
-              key={index}
-              className="border bg-white rounded-md mb-3 p-2 shadow-sm"
-            >
-              {/* Card Header */}
-              <div className="flex justify-between items-center border-b pb-1 mb-2">
-                <h3 className="text-sm text-gray-500">{log.creator}</h3>
-                <span className="text-xs text-gray-400">
-                  {formatDate(log.createdAt)}
-                </span>
-              </div>
-              {/* Task and Status */}
-              <div className="text-sm mb-2">
-                <span className="px-2 py-1 rounded-full text-white bg-blue-200">
-                  {log.task}
-                </span>
-              </div>
-              <div className="flex items-center space-x-1 text-xs">
-                <span>Change status to</span>
-                <span
-                  className={`px-2 py-1 rounded-full text-white ${currentStatus.color}`}
-                >
-                  {currentStatus.text}
-                </span>
-                <span>from</span>
-                <span
-                  className={`px-2 py-1 rounded-full text-white ${prevStatus.color}`}
-                >
-                  {prevStatus.text}
-                </span>
-              </div>
-              {/* Description */}
-              <p className="text-xs text-gray-600 mt-2">{log.description}</p>
-            </div>
-          );
-        })
-      ) : (
-        <p className="text-gray-500 text-sm">No activity logs found.</p>
-      )}
-    </div>
-  </div>
+ <>
+ <ActivityLog isActivityOpen={isActivityOpen} closeActivity={closeActivity} activityLogs={activityLogs} setIsActivityOpen={setIsActivityOpen}/>
+ </>
 )}
+
 
       </div>
     </Activity>

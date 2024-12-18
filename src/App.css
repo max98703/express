@@ -21,6 +21,136 @@
   display: none;
 }
 
+/* CSS for Blinking Circle */
+@keyframes blinkRed {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.blinking-circle {
+ 
+  color: yellow;
+  animation: blinkRed 3s infinite;
+}
+@keyframes bounce {
+  0% {
+    transform: scale(0.95);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.bounce {
+  animation: bounce 0.5s ease forwards;
+}
+
+
+#wave .srname {
+  font-weight: bold;
+  color: #60f;
+}
+#wave .srtextarea {
+  border: 2px solid #60f;
+  background: #6600ff03;
+  margin: 0 0 18px;
+  box-shadow: 0 0 0 4px #6600ff30;
+  padding: 20px 15px;
+  border-radius: 10px;
+  text-align: left;
+  width: 100%;
+  max-width: 250px;
+  display: block;
+  min-height: 180px;
+}
+#wave .srtyping {
+  border: 2px solid #60f;
+  background: #6600ff03;
+  box-shadow: 0 0 0 4px #6600ff30;
+  padding: 10px 18px;
+  border-radius: 50px;
+  text-align: left;
+  width: 100%;
+  max-width: 250px;
+  display: block;
+  min-height: 22px;
+}
+#wave .srfriendzone {
+  margin: 0 5px 0 0px;
+}
+#wave .srsend {
+  float: right;
+  cursor: pointer;
+}
+#wave .dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  margin-right: 0.5px;
+  background: #60f;
+  animation: wave 1s linear infinite;
+  animation-delay: -0.9s;
+}
+#wave .dot.two {
+  animation-delay: -0.7s;
+}
+#wave .dot:nth-child(3) {
+  animation-delay: -0.6s;
+}
+
+@keyframes wave {
+  0%,
+	60%,
+	100% {
+    transform: initial;
+  }
+  30% {
+    transform: translateY(-15px);
+  }
+}
+
+
+/* MyCalendar.css */
+.rbc-event {
+  border-radius: 8px !important;
+  padding: 5px !important;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 500;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease-in-out;
+}
+
+.rbc-event:hover {
+  transform: scale(1.05);
+}
+
+.rbc-toolbar {
+  background: white;
+  padding: 10px;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.rbc-time-header-cell {
+  background: #f9fafb;
+  font-weight: 600;
+  text-align: center;
+  color: #374151;
+}
+
+
 /* Hide scrollbar for IE, Edge and Firefox */
 .example {
 -ms-overflow-style: none;  /* IE and Edge */

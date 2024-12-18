@@ -8,4 +8,4 @@ class User_LoginRepository extends BaseRepository {
 
 }
 
-module.exports =  User_LoginRepository;
+module.exports =    User_LoginRepository;

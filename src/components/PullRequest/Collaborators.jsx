@@ -128,9 +128,9 @@ const Collaborators = () => {
   ];
   return (
     <Activity>
-      <div className="overflow-x-auto example mb-12 mt-4">
-        <div className="p-6 mt-4">
-          <header>
+      <div className="overflow-x-auto example  mt-4">
+        <div className="mt-14">
+          <header className="bg-white p-3">
             <div className="flex justify-between gap-5 lg:items-center">
               <div className="flex flex-col">
                 <div className="flex items-center gap-4">
@@ -208,17 +208,19 @@ const Collaborators = () => {
               <p className="font-semibold">{error}</p>
             </div>
           )}
+            <div className="relative h-[600px] w-full ">
           {!isLoading ? (
             <SmartTable data={pullRequests} columns={columns} />
           ) : (
             <Spinner />
           )}
+          </div>
         </div>
 
         {/* Modal for displaying PRs */}
         {isModalOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg w-3/4 max-h-[60%] overflow-y-auto">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg w-3/4 max-h-[60%] overflow-y-auto example">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold text-primary-500 dark:text-gray-300">
                   PRs by {selectedUser}
@@ -230,7 +232,7 @@ const Collaborators = () => {
                   Close
                 </button>
               </div>
-
+              <div className="relative h-[400px] w-full ">
               {isPRLoading ? (
                 <Spinner />
               ) : userPRs.length > 0 ? (
@@ -308,6 +310,7 @@ const Collaborators = () => {
                   </p>
                 </div>
               )}
+              </div>
             </div>
           </div>
         )}

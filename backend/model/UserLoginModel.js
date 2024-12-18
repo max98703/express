@@ -17,13 +17,12 @@ const UserLogin = sequelize.define('user_Login', {
     },
     logged_in_at: {
         type: Sequelize.DATE,
-        allowNull: false,
+        allowNull: true,
         defaultValue: Sequelize.NOW
     },
     logged_out_at: {
         type: Sequelize.DATE,
-        allowNull: false,
-        defaultValue: Sequelize.NOW
+        allowNull: true,
     },
     ip_address: {
         type: Sequelize.TEXT,

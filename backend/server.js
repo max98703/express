@@ -6,6 +6,7 @@ const cors = require("cors");
 const app = express();
 const { logger } = require("./middleware/logEvents");
 const credentials = require("./middleware/credentials");
+const logout = require("./routes/logout");
 const authRoutes = require("./routes/auth");
 const session = require("express-session");
 const userRoutes = require("./routes/users");
@@ -24,6 +25,7 @@ const crypto = require("crypto");
 const stripes = Stripe(process.env.STRIPE_SECRET_KEY);
 const cron = require("node-cron");
 const { upload } = require("../backend/db/db");
+const facebook = require("./routes/facebookAuth");
 
 app.use(
   session({
@@ -33,6 +35,7 @@ app.use(
     cookie: { maxAge: 30 * 60 * 1000 },
   })
 );
+
 
 app.use(bodyParser.json({ limit: "10mb" }));
 app.use(bodyParser.urlencoded({ limit: "10mb", extended: true }));
@@ -85,12 +88,10 @@ app.post(
 app.post("/uploada", upload.single("myImage"), (req, res) => {
   console.log("Uploaded file:", req.file);
   if (req.file) {
-    return res
-      .status(200)
-      .send({
-        message: "Image saved successfully",
-        filename: req.file.filename,
-      });
+    return res.status(200).send({
+      message: "Image saved successfully",
+      filename: req.file.filename,
+    });
   }
   return res.status(400).send("Image upload failed.");
 });
@@ -192,6 +193,7 @@ app.use(
 
 // app.use(credentials);
 app.use("/", authRoutes);
+app.use("/", facebook);
 app.use(authenticateUser);
 app.use("/", pullrequest(webhookResponses));
 app.use("/", userRoutes);
@@ -200,6 +202,7 @@ app.use("/", project);
 app.use("/", taskLog);
 app.use("/", stripe);
 app.use("/", comment);
+app.use("/", logout);
 const PORT = 5050;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
